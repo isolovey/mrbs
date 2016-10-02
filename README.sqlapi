@@ -26,7 +26,7 @@ see the $persist parameter to sql_connect() below.
 
 To use this package, include "dbsys.inc" after defining the following
 variables:
-     $dbsys = The database abstraction to use, 'mysqli' or 'pgsql'
+     $dbsys = The database abstraction to use, 'mysql' or 'pgsql'
      $db_host = The hostname of the database server, or "localhost"
      $db_login = The username to use when connecting to the database
      $db_password = The database account password
@@ -50,7 +50,7 @@ reason the functions defined here will output an error message and exit.)
 
 The way MRBS uses this is to define a configuration file config.inc.php with
 the above variables plus:
-     $dbsys = "pgsql";  //  or: $dbsys = "mysqli";
+     $dbsys = "pgsql";  //  or: $dbsys = "mysql";
 Then, each PHP script which wants to connect to the database starts with:
      include "config.inc.php";
      include "dbsys.inc";
@@ -113,12 +113,12 @@ The database-independent wrapper functions are documented here:
 Each of the functions below takes an optional final argument that is the
 MRBS database handle returned by sql_connect() call.
 
-sql_command($sql)
+sql_command($sql, $params)
   Execute a non-SELECT SQL command (for example: insert, update, delete).
   Returns the number of tuples affected if OK (a number >= 0).
   Returns -1 on error; use sql_error() to get the error message.
 
-sql_query($sql)
+sql_query($sql, $params)
   Execute an SQL query. Returns a database-dependent result handle, which
   should be passed back to sql_row() or sql_row_keyed() to get the results.
   If sql_row() or sql_row_keyed() isn't used to read all rows (plus 1), you
@@ -161,7 +161,7 @@ sql_row_keyed($result, $rownumber)
 sql_count($result)
   Return the number of rows returned by a result handle from sql_query().
 
-sql_query1($sql)
+sql_query1($sql, $params)
   Execute an SQL query which should return a single non-negative number value.
   Returns the value of the single column in the single row of the query
   result, or -1 on error.
@@ -248,7 +248,7 @@ sql_syntax_timestamp_to_unix($fieldname)
   Generate non-standard SQL to output a TIMESTAMP as a Unix time_t. The
   argument must be the name of a timestamp field.
 
-sql_syntax_caseless_contains($fieldname, $s)
+sql_syntax_caseless_contains($fieldname, $s, $params)
   Generate a non-standard SQL predicate clause which will be true if the
   string $s is contained anywhere in the named field, using case insensitive
   string compare. This uses LIKE or Regular Expression matching, depending
