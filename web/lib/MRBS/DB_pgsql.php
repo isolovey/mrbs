@@ -137,8 +137,8 @@ class DB_pgsql extends DB
   
     $sql_params = array();
     $sql = "SELECT COUNT(*)
-            FROM information_schema.tables
-            WHERE table_name = ?";
+              FROM information_schema.tables
+             WHERE table_name = ?";
     $sql_params[] = $table_parts['table_name'];
     if (isset($table_parts['table_schema']))
     {
@@ -147,8 +147,25 @@ class DB_pgsql extends DB
     }
 
     $res = $this->query1($sql, $sql_params);
-
-    return ($res == -1) ? FALSE : TRUE;
+    
+    if ($res == 0)
+    {
+      return false;
+    }
+    elseif ($res == 1)
+    {
+      return true;
+    }
+    elseif (($res > 1) && !isset($table_parts['table_schema']))
+    {
+      $message = "More than one table called '$table'.  You need to set " . '$db_schema in the config file.';
+      throw new DBException($message);
+    }
+    else
+    {
+      $message = "Unexpected result from SELECT COUNT(*) query.";
+      throw new DBException($message);
+    }
   }
 
 
