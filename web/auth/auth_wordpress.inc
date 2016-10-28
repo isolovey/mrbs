@@ -1,8 +1,7 @@
 <?php
 namespace MRBS;
 
-define('WP_USE_THEMES', false);
-require_once MRBS_ROOT . '/'. $auth['wordpress']['rel_path'] . '/wp-load.php';
+require_once MRBS_ROOT . '/wordpress.inc';
 
 /* authValidateUser($user, $pass)
  * 
@@ -55,29 +54,31 @@ function authGetUserLevel($user)
     return 0;
   }
 
+  // Check to see if the user has admin rights
   if (isset($auth['wordpress']['admin_roles']))
   {
-    // Turn the admin_roles into an array if it isn't alreadt
-    $admin_roles = $auth['wordpress']['admin_roles'];
-    if (!is_array($admin_roles))
+    // Check to see if one of the user's roles is an MRBS admin role
+    if (check_roles($wp_user, $auth['wordpress']['admin_roles']))
     {
-      $admin_roles = array($admin_roles);
-    }
-    // Put the roles into the standard WordPress format
-    $admin_roles = array_map(__NAMESPACE__ . "\\standardise_role_name", $admin_roles);
-    
-    // Check to see if one of the user's roles is an admin role
-    foreach($wp_user->roles as $user_role)
-    {
-      if (in_array($user_role, $admin_roles))
-      {
-        $user_levels[$user] = 2;
-        return $user_levels[$user];
-      }
+      $user_levels[$user] = 2;
+      return $user_levels[$user];
     }
   }
   
-  $user_levels[$user] = 1;
+  // Check to see if the user has user rights
+  if (isset($auth['wordpress']['user_roles']))
+  {
+    // Check to see if one of the user's roles is an MRBS user role
+    if (check_roles($wp_user, $auth['wordpress']['user_roles']))
+    {
+      $user_levels[$user] = 1;
+      return $user_levels[$user];
+    }
+  }
+  
+  // Everybody else is access level '0'
+  $user_levels[$user] = 0;
+  
   return $user_levels[$user];
 }
 
@@ -101,4 +102,25 @@ function authGetUserEmail($user)
 function standardise_role_name($role)
 {
   return str_replace(' ', '_', utf8_strtolower($role));
+}
+
+
+// Checks to see whether any of the user's roles are contained in $mrbs_roles, which can be a
+// string or an array of strings.
+function check_roles($wp_user, $mrbs_roles)
+{
+  if (!isset($mrbs_roles))
+  {
+    return false;
+  }
+  
+  // Turn $mrbs_roles into an array if it isn't already
+  if (!is_array($mrbs_roles))
+  {
+    $mrbs_roles = array($mrbs_roles);
+  }
+  // Put the roles into the standard WordPress format
+  $mrbs_roles = array_map(__NAMESPACE__ . "\\standardise_role_name", $mrbs_roles);
+  
+  return (count(array_intersect($wp_user->roles, $mrbs_roles)) > 0);
 }
