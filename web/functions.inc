@@ -620,6 +620,25 @@ function get_end_last_slot($month, $day, $year)
 }
 
 
+// Gets an array of slot starts for a given booking day.
+function get_slot_starts($month, $day, $year)
+{
+  global $resolution, $morningstarts, $morningstarts_minutes;
+  
+  $result = array();
+  
+  $start_first_slot = get_start_first_slot($month, $day, $year);
+  $start_last_slot = get_start_last_slot($month, $day, $year);
+  
+  for ($t=$start_first_slot; $t<=$start_last_slot; $t+=$resolution)
+  {
+    $result[] = $t;
+  }
+  
+  return $result;
+}
+
+
 // Determines with a given timestamp is within a booking day, ie between the start of
 // the first slot and end of the last slot.   Returns a boolean.
 function is_in_booking_day($t)
@@ -1732,6 +1751,44 @@ function genDateSelector($prefix, $day, $month, $year, $form_id='', $disabled=FA
   generate_select($params);
 
   echo "</span>\n";
+}
+
+
+// Generates a single button.  Parameters in the array $params
+//
+//    Manadatory parameters
+//      action    The form action attribute
+//      value     The value of the button
+//      inputs    An array of hidden form inputs
+//
+//    Optional parameters
+//      button_attributes   An array of attributes to be used for the button.
+function generate_button(array $params, array $button_attributes=array())
+{
+  // Note that until IE supports the form attribute on the button tag, we can't
+  // use a <button> here and have to use the <input type="submit"> to create the
+  // button.   This unfortunately means that styling options on the button are limited.
+  
+  $html = '';
+
+  $html .= "<form method=\"post\" action=\"" . htmlspecialchars($params['action']) . "\">\n";
+
+  foreach ($params['inputs'] as $key => $value)
+  {
+    $html .= '<input type="hidden" name="' . htmlspecialchars($key) . '"' .
+             ' value="' . htmlspecialchars($value) . "\">\n";
+  }
+  
+  $html .= '<input type="submit" value="' . htmlspecialchars($params['value']) . '"';
+  foreach($button_attributes as $key => $value)
+  {
+    $html .= " $key=\"" . htmlspecialchars($value) . '"';
+  }
+  $html .= ">\n";
+  
+  $html .= "</form>\n"; 
+  
+  echo $html;
 }
 
 

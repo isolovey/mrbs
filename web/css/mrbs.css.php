@@ -355,7 +355,11 @@ table.dwm_main {
 .dwm_main#month_main td.invalid {background-color: <?php echo $main_table_month_invalid_color ?>}
 .dwm_main#month_main a {height: 100%; width: 100%; padding: 0 2px 0 2px}
 
-td.new a, a.new_booking {display: block; font-size: medium; text-align: center}
+td.new a, a.new_booking {
+  display: block;
+  text-align: center;
+}
+
 td.new img, .new_booking img {margin: auto; padding: 4px 0 2px 0}
 img.repeat_symbol {float: right; padding: 3px}
 .dwm_main#month_main img.repeat_symbol {padding: 2px}
@@ -1416,3 +1420,100 @@ a.dt-button {
 div#check_tabs {background-image: none}
 .edit_entry #ui-tab-dialog-close {position:absolute; right:0; top:23px}
 .edit_entry #ui-tab-dialog-close a {float:none; padding:0}
+
+
+/* ------------- Main table ----------------------*/
+
+.main_view {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.main_view table {
+  border-collapse: collapse;
+}
+
+.main_view td {
+  padding: 0;
+}
+
+.main_view_data, .grid {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.main_view_data tr:nth-child(even) td.new {
+  background-color: <?php echo $row_even_color ?>;
+}
+
+.main_view_data tr:nth-child(odd) td.new {
+  background-color: <?php echo $row_odd_color ?>;
+}
+
+.main_view td {
+  overflow: hidden;
+}
+
+.main_view table td {
+  border-top: 1px solid <?php echo $body_background_color ?>;
+}
+
+.main_view a, .main_view .grid span {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  white-space: nowrap;
+  padding: 0.1em 0.2em;
+}
+
+<?php 
+// Put the border on the right hand side so that the view
+// isn't filled with borders when the slots are very narrow,
+// eg in the month view
+?>
+.main_view_data a {
+  border-right: 1px solid <?php echo $body_background_color ?>;
+}
+
+.main_view_data td:last-child a,
+.main_view_data td.first_part a {
+  border-right: 0;
+}
+
+.main_view_data td.continuation a {
+  color: transparent;
+}
+
+td.data {
+  position: relative;
+}
+
+.grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.main_view .grid td {
+  border-top-color: transparent;
+}
+
+.grid span {
+  border-left: 1px dotted #788d9c;
+}
+
+.week .grid span,
+.month .grid span {
+  border-left-width: 0;
+}
+
+.grid .first_slot_of_day span {
+  border-left: 1px dotted #788d9c;
+}
+
+.grid td:first-child span {
+  border-left-width: 0;
+}
+
+
+
