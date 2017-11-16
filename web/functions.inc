@@ -1,8 +1,39 @@
 <?php
 namespace MRBS;
+
 use \DateTimeZone;
+use MRBS\Form\Form;
+
 
 require_once "mrbs_sql.inc";
+
+
+function get_cookie_path()
+{
+  global $cookie_path_override, $PHP_SELF;
+  
+  if (isset($cookie_path_override))
+  {
+    $cookie_path = $cookie_path_override;
+  }
+  else
+  {
+    $cookie_path = $PHP_SELF;
+    // Strip off everything after the last '/' in $PHP_SELF
+    $cookie_path = preg_replace('/[^\/]*$/', '', $cookie_path);
+  }
+  
+  return $cookie_path;
+}
+
+
+// Formats a number taking into account the current locale.  (Could use
+// the NumberFormatter class, but the intl extension isn't always installed.)
+function number_format_locale($number, $decimals=0)
+{
+  $locale_info = localeconv();
+  return number_format($number, $decimals, $locale_info['decimal_point'], $locale_info['thousands_sep']);
+}
 
 
 function get_microtime()
@@ -1516,9 +1547,9 @@ function generate_datalist($params)
     $html .= ">" . $params['label'] . "</label>\n";
   }
   
-  $html .= "<input id=\"" . $params['id'] . "\" name=\"" . $params['name'] . "\"";
+  $html .= "<input type=\"text\" id=\"" . $params['id'] . "\" name=\"" . $params['name'] . "\"";
   $html .= " list=\"" . $params['id'] . "_options\"";
-  $html .= " value=\"" . $params['value'] . "\"";
+  $html .= " value=\"" . htmlspecialchars($params['value']) . "\"";
   $html .= ($params['disabled']) ? " disabled=\"disabled\"" : "";
   $html .= (isset($params['pattern'])) ? " pattern=\"" . htmlspecialchars($params['pattern']) . "\"" : "";
   $html .= ($params['mandatory']) ? " required aria-required=\"true\"" : "";
@@ -2367,6 +2398,7 @@ function make_area_select_html($link, $current, $year, $month, $day)
     if ($area_list_format == "select")
     {
       $out_html .= "<form id=\"areaChangeForm\" method=\"get\" action=\"$link\">\n" .
+                   Form::getTokenHTML() . "\n" .
                    "<div>\n" .
                    "<select class=\"room_area_select\" id=\"area_select\" name=\"area\" onchange=\"this.form.submit()\">";
       foreach ($areas as $area_id => $area_name)
@@ -2422,6 +2454,7 @@ function make_room_select_html ($link, $area, $current, $year, $month, $day)
     if ($area_list_format == "select")
     {
       $out_html .= "<form id=\"roomChangeForm\" method=\"get\" action=\"$link\">\n" .
+                   Form::getTokenHTML() . "\n" .
                    "<div>\n" .
                    "<select class=\"room_area_select\" name=\"room\" onchange=\"this.form.submit()\">\n";
   

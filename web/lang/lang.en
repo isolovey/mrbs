@@ -10,6 +10,7 @@
 
 // Used in style.inc
 $vocab["mrbs"]               = "Meeting Room Booking System";
+$vocab["mrbs_abbr"]          = "MRBS";
 
 // Used in functions.inc
 $vocab["report"]             = "Report";
@@ -367,7 +368,6 @@ $vocab["editroom"]                = "Edit Room";
 $vocab["viewroom"]                = "View Room";
 $vocab["error_room"]              = "Error: room ";
 $vocab["not_found"]               = " not found";
-$vocab["error_area"]              = "Error: area ";
 $vocab["room_admin_email"]        = "Room admin email";
 $vocab["area_admin_email"]        = "Area admin email";
 $vocab["area_first_slot_start"]   = "Start of first slot";
@@ -444,6 +444,7 @@ $vocab["name_not_unique"]    = "already exists.   Please choose another name.";
 
 // Used in del.php
 $vocab["deletefollowing"]    = "This will delete the following bookings";
+$vocab["and_n_more"]         = "and %s more";  // %s rather than %d because n is the output of number_format()
 $vocab["sure"]               = "Are you sure?";
 $vocab["YES"]                = "YES";
 $vocab["NO"]                 = "NO";
@@ -527,5 +528,8 @@ $vocab["type.E"]            = "External";
 $vocab["fatal_error"]        = "Whoops!  Unfortunately MRBS has encountered a fatal error.  Please consult your system administrator.";
 $vocab["fatal_db_error"]     = "Fatal error: unfortunately the database is not available at the moment.";
 $vocab["fatal_no_tables"]    = "Fatal error: the MRBS tables do not exist or cannot be accessed.";
+$vocab["session_expired"]    = "Your session has expired.";
+$vocab["browser_not_supported"] = "Unfortunately your browser isn't supported by %s.  You will need to upgrade to a more " .
+                                  "recent version, or else use another browser.";
 $vocab["back"]               = "Back";
 

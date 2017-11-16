@@ -1,6 +1,13 @@
 <?php
 namespace MRBS;
 
+use MRBS\Form\Form;
+use MRBS\Form\ElementFieldset;
+use MRBS\Form\ElementInputSubmit;
+use MRBS\Form\FieldInputPassword;
+use MRBS\Form\FieldInputSubmit;
+use MRBS\Form\FieldInputText;
+
 
 function print_login_failed()
 {
@@ -14,15 +21,23 @@ function print_login_failed()
 */
 function print_login_form($action, $target_url, $returl)
 {
-  $html = '';
+  $form = new Form();
+  $form->setAttributes(array('class'  => 'form_general',
+                             'id'     => 'logon',
+                             'method' => 'post',
+                             'action' => $action));
   
-  $html .= "<form class=\"form_general\" id=\"logon\" method=\"post\"".
-           " action=\"" . htmlspecialchars($action) . "\">\n";
-  $html .= "<fieldset>\n";
-  $html .= "<legend>" . get_vocab("please_login") . "</legend>\n";
+  // Hidden inputs
+  $hidden_inputs = array('returl'     => $returl,
+                         'target_url' => $target_url,
+                         'action'     => 'SetName');
+  $form->addHiddenInputs($hidden_inputs);
   
-  $html .= "<div>\n";
+  // Now for the visible fields
+  $fieldset = new ElementFieldset();
+  $fieldset->addLegend(get_vocab('please_login'));
   
+  // The username field
   if (function_exists(__NAMESPACE__ . "\\canValidateByEmail")
       && canValidateByEmail())
   {
@@ -33,32 +48,37 @@ function print_login_form($action, $target_url, $returl)
     $placeholder = get_vocab("users.name");
   }
   
-  $html .= "<label for=\"username\" title=\"$placeholder\">" . 
-           get_vocab("user") . "</label>\n";
-  $html .= "<input type=\"text\" id=\"username\" name=\"username\" " .
-           " placeholder=\"$placeholder\">\n";
-  $html .= "</div>\n";
+  $field = new FieldInputText();
+  $field->setLabel(get_vocab('user'))
+        ->setLabelAttributes(array('title' => $placeholder))
+        ->setControlAttributes(array('id'          => 'username',
+                                     'name'        => 'username',
+                                     'placeholder' => $placeholder,
+                                     'required'    => null,
+                                     'autofocus'   => null));               
+  $fieldset->addElement($field);
   
-  $html .= "<div>\n";
-  $html .= "<label for=\"password\">" . get_vocab("users.password") . "</label>\n";
-  $html .= "<input type=\"password\" id=\"password\" name=\"password\">\n";
-  $html .= "</div>\n";
+  // The password field
+  $field = new FieldInputPassword();
+  $field->setLabel(get_vocab('users.password'))
+        ->setControlAttributes(array('id'          => 'password',
+                                     'name'        => 'password'));               
+  $fieldset->addElement($field);
+  
+  // The submit button
+  $field = new FieldInputSubmit();
+  $field->setControlAttributes(array('value' => get_vocab('login')));
+  $fieldset->addElement($field);
+  
+  $form->addElement($fieldset);
+  
+  $form->render();
+  
+  
+  // The code below doesn't really belong here and ideally ought to be moved
+  // to somewhere where you can see the opening <div> etc.
 
-
-  $html .= "<input type=\"hidden\" name=\"returl\" value=\"" . htmlspecialchars($returl) . "\">\n";
-  $html .= "<input type=\"hidden\" name=\"target_url\" value=\"" . htmlspecialchars($target_url) . "\">\n";
-  $html .= "<input type=\"hidden\" name=\"action\" value=\"SetName\">\n";
-  
-  $html .= "<div id=\"logon_submit\">\n";
-  $html .= "<input class=\"submit\" type=\"submit\" value=\"" . get_vocab('login') . "\">\n";
-  $html .= "</div>\n";
-  
-  $html .= "</fieldset>\n";
-  $html .= "</form>\n";
-
-  $html .= "</div>";  // Close of the contents div
-  
-  echo $html;
+  echo "</div>\n";  // Close of the contents div
   
   // Print footer and exit
   print_footer(TRUE);
@@ -85,35 +105,43 @@ function print_unknown_user()
 
 function print_logon_button($target_url)
 {
-  $html = '';
+  $form = new Form();
+  $form->setAttributes(array('method' => 'post',
+                             'action' => 'admin.php'));
   
-  $html .= "<form method=\"post\" action=\"admin.php\">\n";
-  $html .= "<div>\n";
-  $html .= "<input type=\"hidden\" name=\"target_url\" value=\"" . htmlspecialchars($target_url) . "\">\n";
-  $html .= "<input type=\"hidden\" name=\"action\" value=\"QueryName\">\n";
-  $html .= "<input type=\"submit\" value=\"" . get_vocab('login') . "\">\n";
-  $html .= "</div>\n";
-  $html .= "</form>\n";
+  // Add the hidden fields
+  $hidden_inputs = array('target_url' => $target_url,
+                         'action'     => 'QueryName');
+  $form->addHiddenInputs($hidden_inputs);
   
-  echo $html;
+  // The submit button
+  $element = new ElementInputSubmit();
+  $element->setAttribute('value', get_vocab('login'));
+  $form->addElement($element);
+  
+  $form->render();
 }
 
 
 function print_logoff_button($target_url)
 {
-  $html = '';
+  $form = new Form();
+  $form->setAttributes(array('method' => 'post',
+                             'action' => 'admin.php'));
   
-  $html .= "<form method=\"post\" action=\"admin.php\">\n";
-  $html .= "<div>\n";
-  $html .= "<input type=\"hidden\" name=\"target_url\" value=\"" . htmlspecialchars($target_url) . "\">\n";
-  $html .= "<input type=\"hidden\" name=\"action\" value=\"SetName\">\n";
-  $html .= "<input type=\"hidden\" name=\"username\" value=\"\">\n";
-  $html .= "<input type=\"hidden\" name=\"password\" value=\"\">";
-  $html .= "<input type=\"submit\" value=\"" . get_vocab('logoff') . "\">\n";
-  $html .= "</div>\n";
-  $html .= "</form>\n";
+  // Add the hidden fields
+  $hidden_inputs = array('target_url' => $target_url,
+                         'action'     => 'SetName',
+                         'username'   => '',
+                         'password'   => '');
+  $form->addHiddenInputs($hidden_inputs);
   
-  echo $html;
+  // The submit button
+  $element = new ElementInputSubmit();
+  $element->setAttribute('value', get_vocab('logoff'));
+  $form->addElement($element);
+  
+  $form->render();
 }
 
 
