@@ -75,8 +75,7 @@ init = function() {
       duration: 'fast',
       showWeek: <?php echo ($view_week_number) ? 'true' : 'false' ?>,
       firstDay: <?php echo $weekstarts ?>,
-      altFormat: 'yy-mm-dd',
-      onSelect: function(dateText, inst) {datepickerSelect(inst);}
+      altFormat: 'yy-mm-dd'
     });
     
   <?php
@@ -130,9 +129,10 @@ init = function() {
       $('<input>').attr('class', 'date')
                   .attr('type', 'text')
                   .attr('id', baseId)
-                  .datepicker({altField: '#' + baseId + '_alt',
-                               disabled: disabled,
-                               yearRange: minYear + ':' + maxYear})
+                  .datepicker({altField:  '#' + baseId + '_alt',
+                               disabled:  disabled,
+                               yearRange: minYear + ':' + maxYear,
+                               onSelect:  function(dateText, inst) {datepickerSelect(inst);}})
                   .datepicker('setDate', initialDate)
                   .change(function() {
                       <?php // Allow the input field to be updated manually ?>
@@ -156,6 +156,41 @@ init = function() {
       span.css('visibility', 'inherit');
       
       $('.ui-datepicker').draggable();
+    });
+    
+  <?php // New style datepickers ?>
+  $('input[type="date"]').each(function() {
+      var input = $(this),
+          thisDate = input.val(),
+          thisName = input.attr('name'),
+          altId = thisName + '_alt';
+      
+      <?php
+      // Create a hidden field, which will be the alt field, that will
+      // hold the date value in the standard format.
+      ?>
+      $('<input>').attr('type', 'hidden')
+                  .attr('id', altId)
+                  .attr('name', thisName)
+                  .val(thisDate)
+                  .insertAfter(input);
+          
+      input.attr('type','text')
+           .removeAttr('name')
+           .addClass('date')
+           .datepicker({altField: '#' + altId});
+           
+      <?php
+      // Initialise the date in the field.   Our date is in yy-mm-dd
+      // format, so we have to save the current datepicker format,
+      // change the format, set the date and then restore the old format.
+      // (Note: the other way of doing it by using a Date object presents
+      // timezone complications).
+      ?>
+      var dateFormat = input.datepicker('option', 'dateFormat');
+      input.datepicker('option', 'dateFormat', 'yy-mm-dd');
+      input.datepicker('setDate', new Date(thisDate));
+      input.datepicker('option', 'dateFormat', dateFormat);
     });
 };
 
