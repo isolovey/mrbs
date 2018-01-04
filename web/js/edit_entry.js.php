@@ -173,8 +173,8 @@ function onAllDayClick()
       endSelect = form.find('#end_seconds'),
       allDay = form.find('#all_day');
       
-  var startDatepicker = form.find('#start_datepicker'),
-      endDatepicker = form.find('#end_datepicker');
+  var startDatepicker = form.find('#start_date'),
+      endDatepicker = form.find('#end_date');
   
   var date, firstSlot, lastSlot;
 
@@ -781,16 +781,16 @@ function getDateDifference()
 {
   var diff,
       secondsPerDay = <?php echo SECONDS_PER_DAY ?>,
-      start = $('#start_datepicker_alt').val().split('-'),
+      start = $('#start_date_alt').val().split('-'),
       startDate = new Date(parseInt(start[0], 10), 
                            parseInt(start[1], 10) - 1,
                            parseInt(start[2], 10),
                            12),
-      endDatepickerAlt = $('#end_datepicker_alt'),
+      endDateAlt = $('#end_date_alt'),
       end,
       endDate;
       
-  if (endDatepickerAlt.length === 0)
+  if (endDateAlt.length === 0)
   {
     <?php
     // No end date selector, so assume the end date is
@@ -800,7 +800,7 @@ function getDateDifference()
   }
   else
   {
-    end = $('#end_datepicker_alt').val().split('-'); 
+    end = $('#end_date_alt').val().split('-'); 
     endDate = new Date(parseInt(end[0], 10), 
                        parseInt(end[1], 10) - 1,
                        parseInt(end[2], 10),
@@ -1248,8 +1248,8 @@ init = function(args) {
     endSelect.prop('disabled', true);
     onAllDayClick.oldStart = startSelect.val();
     onAllDayClick.oldEnd = endSelect.val();
-    onAllDayClick.oldStartDatepicker = form.find('#start_datepicker').datepicker('getDate');
-    onAllDayClick.oldEndDatepicker = form.find('#end_datepicker').datepicker('getDate');
+    onAllDayClick.oldStartDatepicker = form.find('#start_date').datepicker('getDate');
+    onAllDayClick.oldEndDatepicker = form.find('#end_date').datepicker('getDate');
   }
 
 
@@ -1312,7 +1312,29 @@ init = function(args) {
               .change(function() {
                   checkConflicts();
                 });
-     
+    
+    <?php
+    // and a div to hold the dialog box which gives more details.    The dialog
+    // box contains a set of tabs.   And because we want the tabs to act as the
+    // dialog box we add an extra tab where we're going to put the dialog close
+    // button and then we hide the dialog itself
+    ?>
+    var tabsHTML =
+'<div id="check_tabs">' +
+'<ul id="details_tabs">' +
+'<li><a href="#schedule_details"><?php echo get_vocab('schedule') ?></a></li>' +
+'<li><a href="#policy_details"><?php echo get_vocab('policy') ?></a></li>' +
+'<li id="ui-tab-dialog-close"></li>' +
+'</ul>' +
+'<div id="schedule_details"></div>' +
+'<div id="policy_details"></div>' +
+'</div>';
+
+    $('<div>').attr('id', 'check_results')
+              .css('display', 'none')
+              .html(tabsHTML)
+              .appendTo($('form#main'));
+    
     $('#conflict_check, #policy_check').click(function manageTabs() {
         var tabId,
             tabIndex,
@@ -1385,7 +1407,7 @@ init = function(args) {
   // Actions to take when the repeat end datepicker is updated (it doesn't fire
   // a change event so won't be caught by the general handler above)
   ?>
-  $('#rep_end_datepicker').on('datePickerUpdated', function() {
+  $('#rep_end_date').on('datePickerUpdated', function() {
     checkConflicts();
   });
   
@@ -1393,7 +1415,7 @@ init = function(args) {
   <?php
   // Actions to take when the start and end datepickers are closed
   ?>
-  $('#start_datepicker, #end_datepicker').on('datePickerUpdated', function() {
+  $('#start_date, #end_date').on('datePickerUpdated', function() {
     
     <?php
     // (1) If the end_datepicker isn't visible and we change the start_datepicker,
@@ -1402,9 +1424,9 @@ init = function(args) {
     ?>
     if ($(this).attr('id') === 'start_datepicker')
     {
-      if ($('#end_datepicker').css('visibility') === 'hidden')
+      if ($('#end_date').css('visibility') === 'hidden')
       {
-        $('#end_datepicker_alt').val($('#start_datepicker_alt').val());
+        $('#end_date_alt').val($('#start_date_alt').val());
       }
     }
     
@@ -1428,7 +1450,7 @@ init = function(args) {
 
   });
   
-  $('#start_datepicker, #end_datepicker').each(function() {
+  $('#start_date, #end_date').each(function() {
       checkTimeSlots($(this));
     });
     
