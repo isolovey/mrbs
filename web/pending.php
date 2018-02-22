@@ -237,7 +237,7 @@ checkAuthorised();
 $user = getUserName();
 $is_admin = (authGetUserLevel($user) >= 2);
 
-print_header($day, $month, $year, $area, isset($room) ? $room : null);
+print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
 
 echo "<h1>" . get_vocab("pending") . "</h1>\n";
 
@@ -328,5 +328,4 @@ else  // display them in a table
   echo "</div>\n";
 }
 
-output_trailer();
-
+print_footer();

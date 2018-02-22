@@ -69,7 +69,7 @@ function generate_search_nav_html($search_pos, $total, $num_records, $search_str
 
 function output_row($row)
 {
-  global $ajax, $json_data;
+  global $ajax, $json_data, $view;
   
   $values = array();
   // booking name
@@ -79,7 +79,18 @@ function output_row($row)
   $values[] = htmlspecialchars($row['create_by']);
   // start time and link to day view
   $date = getdate($row['start_time']);
-  $link = "<a href=\"day.php?day=$date[mday]&amp;month=$date[mon]&amp;year=$date[year]&amp;area=".$row['area_id']."\">";
+  
+  $vars = array('view'  => $view,
+                'year'  => $date['year'],
+                'month' => $date['mon'],
+                'day'   => $date['mday'],
+                'area'  => $row['area_id'],
+                'room'  => $row['room_id']);
+                
+  $query = http_build_query($vars, '', '&amp;');
+                
+  $link = "<a href=\"calendar.php?$query\">";
+  
   if(empty($row['enable_periods']))
   {
     $link_str = time_date_string($row['start_time']);
@@ -159,7 +170,7 @@ if (!isset($search_str))
   
 if (!$ajax)
 {
-  print_header($day, $month, $year, $area, isset($room) ? $room : null, $search_str);
+  print_header($view, $year, $month, $day, $area, isset($room) ? $room : null, $search_str);
 
   if (!empty($advanced))
   {
@@ -197,14 +208,14 @@ if (!$ajax)
     
     $form->render();
     
-    output_trailer();
+    print_footer();
     exit;
   }
 
   if (!isset($search_str) || ($search_str === ''))
   {
     echo "<p class=\"error\">" . get_vocab("invalid_search") . "</p>";
-    output_trailer();
+    print_footer();
     exit;
   }
 
@@ -315,7 +326,7 @@ if (!isset($total))
 if (($total <= 0) && !$ajax)
 {
   echo "<p id=\"nothing_found\">" . get_vocab("nothing_found") . "</p>\n";
-  output_trailer();
+  print_footer();
   exit;
 }
 
@@ -335,7 +346,7 @@ if (!$ajax_capable || $ajax)
 {
   // Now we set up the "real" query
   $sql = "SELECT E.id AS entry_id, E.create_by, E.name, E.description, E.start_time,
-                 R.area_id, A.enable_periods
+                 E.room_id, R.area_id, A.enable_periods
             FROM $tbl_entry E, $tbl_room R, $tbl_area A
            WHERE $sql_pred
         ORDER BY E.start_time asc";
@@ -401,6 +412,6 @@ else
   echo "</tbody>\n";
   echo "</table>\n";
   echo "</div>\n";
-  output_trailer();
+  print_footer();
 }
 

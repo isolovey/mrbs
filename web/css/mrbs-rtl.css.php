@@ -59,7 +59,7 @@ div#area_form, div.header_columns, div.body_columns {
 
 /* ------------ DAY/WEEK/MONTH.PHP ------------------*/
 
-div#dwm_header, div#dwm_areas, div#dwm_rooms, div.cell_container {
+div#dwm_header, div.cell_container {
   float: right;
 }
 
@@ -77,7 +77,7 @@ div#dwm_header, div#dwm_areas, div#dwm_rooms, div.cell_container {
   text-align: left;
 }
 
-div#dwm_areas, div#dwm_rooms, .date_before, .date_after, table.dwm_main {
+.date_before, .date_after, table.dwm_main {
   direction: rtl;
 }
 
@@ -157,16 +157,6 @@ div.report_entry_title, div.report_entry_name, p.report_entries {
   float: right;
 }
 
-/* ------------ TRAILER.INC ---------------------*/
-
-div#trailer, #trailer div, #trailer div.trailer_label,
-#trailer div.trailer_links {
-  float: right;
-}
-
-div#trailer {
-  direction: rtl;
-}
 
 /* ------------ VIEW_ENTRY.PHP ------------------*/
 

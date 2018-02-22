@@ -27,6 +27,7 @@ require_once "session/session_$auth[session].inc";
 // These pages are open to the public by default as they only contain
 // read features.   However if $auth['deny_public_access'] is TRUE then
 // access to the public is denied
+$page_level['calendar.php']              = ($auth['deny_public_access']) ? 1 : 0;
 $page_level['day.php']                   = ($auth['deny_public_access']) ? 1 : 0;
 $page_level['help.php']                  = ($auth['deny_public_access']) ? 1 : 0;
 $page_level['month.php']                 = ($auth['deny_public_access']) ? 1 : 0;
@@ -105,7 +106,7 @@ function getAuthorised($level)
 function checkAuthorised($just_check=FALSE)
 {
   global $page_level, $max_level;
-  global $day, $month, $year, $area, $room;
+  global $view, $year, $month, $day, $area, $room;
   global $PHP_SELF;
 
   $page = this_page();
@@ -148,7 +149,7 @@ function checkAuthorised($just_check=FALSE)
     {
       $area = get_default_area();
     }
-    showAccessDenied($day, $month, $year, $area, isset($room) ? $room : null);
+    showAccessDenied($view, $year, $month, $day, $area, isset($room) ? $room : null);
     exit();
   }
   
@@ -191,11 +192,11 @@ function getWritable($creator, $user, $room)
  * 
  * Returns: Nothing
  */
-function showAccessDenied($day=null, $month=null, $year=null, $area=null, $room=null)
+function showAccessDenied($view=null, $year=null, $month=null, $day=null, $area=null, $room=null)
 {
   global $HTTP_REFERER;
 
-  print_header($day, $month, $year, $area, isset($room) ? $room : null);
+  print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
 
   echo "<h1>" . get_vocab("accessdenied") . "</h1>\n";
   echo "<p>" . get_vocab("norights") . "</p>\n";
