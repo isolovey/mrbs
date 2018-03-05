@@ -29,18 +29,14 @@ checkAuthorised();
 
 if (empty($returl))
 {
-  switch ($default_view)
-  {
-    case "month":
-      $returl = "month.php";
-      break;
-    case "week":
-      $returl = "week.php";
-      break;
-    default:
-      $returl = "day.php";
-  }
-  $returl .= "?year=$year&month=$month&day=$day&area=$area";
+  $vars = array('view'  => $default_view,
+                'year'  => $year,
+                'month' => $month,
+                'day'   => $day,
+                'area'  => $area,
+                'room'  => $room);
+
+  $returl .= 'index.php?' . http_build_query($vars, '', '&');
 }
 
 if ($info = get_booking_info($id, FALSE, TRUE))
@@ -117,5 +113,5 @@ if ($info = get_booking_info($id, FALSE, TRUE))
 }
 
 // If you got this far then we got an access denied.
-showAccessDenied($day, $month, $year, $area);
+showAccessDenied($view, $year, $month, $day, $area);
 

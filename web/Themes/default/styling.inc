@@ -6,15 +6,18 @@ namespace MRBS;
 // ***** COLOURS ************************
 // Colours used in MRBS.    All the colours are defined here as PHP variables
 
-$body_background_color          = "#e7ebee";    // background colour for the main body
+$body_background_color          = "#f9fbfc";    // background colour for the main body
 $standard_font_color            = "#0B263B";    // default font color
 $header_font_color              = "#ffffff";    // font color for text in headers
 $highlight_font_color           = "#ff0066";    // used for highlighting text (eg links, errors)
-$colour_key_font_color          = $standard_font_color;    // used in the colour key table
+$color_key_font_color           = $standard_font_color;    // used in the colour key table
 
-$banner_back_color              = "#4b667b";    // background colour for banner
+$banner_back_color              = "#3f5765";    // background colour for banner
 $banner_border_color            = $body_background_color;    // border colour for banner
 $banner_font_color              = $header_font_color;       // font colour for banner
+
+$minical_view_color             = "#2b3a42";    // used for highlighting the dates in the current view
+$minical_today_color            = "#bdd4de";    // used for highlighting today
 
 $header_back_color              = $banner_back_color;  // background colour for headers
 
@@ -51,8 +54,6 @@ $search_table_border_color      = $standard_font_color;
 
 $site_faq_entry_border_color    = "#C3CCD3";              // used to separate individual FAQ's in help.php
 
-$trailer_border_color           = $standard_font_color;
-
 $anchor_link_color              = $standard_font_color;        // link color
 $anchor_visited_color           = $anchor_link_color;          // link color (visited)
 $anchor_hover_color             = $highlight_font_color;       // link color (hover)
@@ -68,8 +69,8 @@ $anchor_hover_color_header      = $anchor_link_color_header;   // link color (ho
 $column_hidden_color            = $main_table_month_invalid_color;    // hidden days in the week and month views
 $calendar_hidden_color          = "#dae0e4";                          // hidden days in the mini-cals
 $row_even_color                 = "#ffffff";        // even rows in the day and week views
-$row_odd_color                  = "#f2f4f6";        // even rows in the day and week views
-$row_highlight_color            = "#ffc0da";        // used for highlighting a row
+$row_odd_color                  = "#efefef";        // even rows in the day and week views
+$row_highlight_color            = "#bdd4de";        // used for highlighting a row
 
 $help_highlight_color           = "#ffe6f0";        // highlighting text on the help page
 

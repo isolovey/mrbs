@@ -6,6 +6,7 @@ use MRBS\Form\ElementInputDate;
 use MRBS\Form\ElementInputSearch;
 use MRBS\Form\ElementInputSubmit;
 
+  
 function print_head($simple=false)
 {
   echo "<head>\n";
@@ -39,6 +40,37 @@ function print_head($simple=false)
 }
 
 
+function print_mini_calendar($view, $year, $month, $day, $area, $room)
+{
+  $buffer_size_prev = 15;  // months of hidden mini-calendars before the visible one
+  $buffer_size_next = 15;  // months of hidden mini-calendars after the visible one
+  
+  $mincal = get_form_var('mincal', 'string');
+  
+  // Validate the mincal input
+  if (isset($mincal))
+  {
+    $date = DateTime::createFromFormat('Y-m', $mincal);
+    if (($date === false) || array_sum($date->getLastErrors()))
+    {
+      $mincal = null;
+    }
+  }
+  
+  $mini_calendar = new MiniCalendar($view, $year, $month, $day, $area, $room, $mincal);
+  // Go back to the first mini-calendar in the buffer
+  $mini_calendar->sub('P' . $buffer_size_prev . 'M');
+  
+  // Output all the mini-calendars
+  for ($i = -$buffer_size_prev; $i <= $buffer_size_next; $i++)
+  {
+    $hidden = ($i !=0);
+    echo $mini_calendar->toHTML($hidden);
+    $mini_calendar->add('P1M');
+  }
+}
+
+
 // Print the basic site information.   This function is used for all headers, including
 // the simple header, and so mustn't require any database access.
 function print_header_site_info()
@@ -48,54 +80,57 @@ function print_header_site_info()
          $mrbs_company_logo,
          $mrbs_company_more_info;
   
-  echo "<div class=\"company\">\n";
-  
-  echo "<div class=\"logo\">\n";
-  if (!empty($mrbs_company_url))
+  // Company logo, with a link to the company
+  if (!empty($mrbs_company_logo))
   {
-    echo "<a href=\"$mrbs_company_url\">\n";
-  }
-  if (empty($mrbs_company_logo))
-  {
-    echo "<span>$mrbs_company</span>\n";
-  }
-  else
-  {
+    echo "<div class=\"logo\">\n";
+    if (!empty($mrbs_company_url))
+    {
+      echo '<a href="' . htmlspecialchars($mrbs_company_url) . '">';
+    }
     // Suppress error messages in case the logo is a URL and allow_url_fopen
     // is not enabled in php.ini
     $logo_size = @getimagesize($mrbs_company_logo);
-    echo "<img src=\"$mrbs_company_logo\" " . $logo_size[3] . " alt=\"$mrbs_company\">\n";
+    echo '<img src="' . $mrbs_company_logo . '" ' . $logo_size[3] . 
+         ' alt="' . htmlspecialchars($mrbs_company) . '">';
+    if (!empty($mrbs_company_url))
+    {
+      echo "</a>\n";
+    }
+    echo "</div>\n";
   }
+  
+  // Company name, any extra company info and MRBS
+  echo "<div class=\"company\">\n";
+  if (!empty($mrbs_company_url))
+  {
+    echo '<a href="' . htmlspecialchars($mrbs_company_url) . '">';
+  }
+  echo '<span>' . htmlspecialchars($mrbs_company) . '</span>';
   if (!empty($mrbs_company_url))
   {
     echo "</a>\n";
   }
-  echo "</div>\n";
-    
   if (!empty($mrbs_company_more_info))
   {
-    echo "<div id=\"more_info\">$mrbs_company_more_info</div>\n";
+    echo '<span id="more_info">' . htmlspecialchars($mrbs_company_more_info) . "</span>\n";
   }
-
-  echo "<div class=\"mrbs\">\n";
-  echo "<a href=\"index.php\">" . get_vocab("mrbs") . "</a>\n";
-  echo "</div>\n";
-  
+  echo '<a href="index.php">' . get_vocab('mrbs') . "</a>\n";
   echo "</div>\n";
 }
 
 
-function print_goto_date($day, $month, $year, $area, $room)
+function print_goto_date($view, $year, $month, $day, $area, $room)
 {
-  $user = getUserName();
-  
   $form = new Form();
   
   $form_id = 'form_nav';
   
   $form->setAttributes(array('id'     => $form_id,
                              'method' => 'get',
-                             'action' => 'day.php'));
+                             'action' => 'index.php'))
+       ->addHiddenInput('view', $view);
+                    
   if (isset($area))
   {
     $form->addHiddenInput('area', $area);
@@ -119,7 +154,17 @@ function print_goto_date($day, $month, $year, $area, $room)
   $form->addElement($submit);
   
   $form->render();
+}
+
+
+function print_outstanding($query)
+{
+  $user = getUserName();
   
+  if (!isset($user))
+  {
+    return;
+  }
   
   // Provide a link to the list of bookings awaiting approval
   // (if there are any enabled areas where we require bookings to be approved)
@@ -127,52 +172,72 @@ function print_goto_date($day, $month, $year, $area, $room)
   if ($approval_somewhere && (authGetUserLevel($user) >= 1))
   {
     $n_outstanding = get_entries_n_outstanding($user);
-    echo "<div id=\"n_outstanding\"" .
-         (($n_outstanding > 0) ? " class=\"outstanding\"" : '') .
-         ">\n";
-    echo "<a href=\"pending.php?day=$day&amp;month=$month&amp;year=$year&amp;area=$area" . 
-         ((!empty($room)) ? "&amp;room=$room" : "") . 
-         "\">$n_outstanding " . get_vocab("outstanding") . "</a>\n";
-    echo "</div>\n";
+    
+    $class = 'notification';
+    
+    if ($n_outstanding > 0)
+    {
+      $class .= ' attention';
+    }
+    
+    echo '<a href="pending.php?' . htmlspecialchars($query) . '"' .
+         " class=\"$class\"" .
+         ' title="' . get_vocab('outstanding', $n_outstanding) .
+         "\">$n_outstanding</a>\n";
   }
 }
 
 
-function print_help($query_string)
+function print_help($query)
 {
-  echo "<a href=\"help.php?$query_string\">" . get_vocab("help") . "</a>\n";
+  echo '<a href="help.php?' . htmlspecialchars($query) . '">' . get_vocab('help') . "</a>\n";
 }
 
 
-function print_rooms($query_string)
+function print_rooms($query)
 {
-  echo "<a href=\"admin.php?$query_string\">" . get_vocab("rooms") . "</a>\n";
+  echo '<a href="admin.php?' . htmlspecialchars($query) . '">' . get_vocab('rooms') . "</a>\n";
 }
 
 
-function print_report($query_string)
+function print_report($query)
 {
-  echo "<a href=\"report.php?$query_string\">" . get_vocab("report") . "</a>\n";
+  echo '<a href="report.php?' . htmlspecialchars($query) . '">' . get_vocab('report') . "</a>\n";
 }
 
 
-function print_search($day, $month, $year, $area, $room, $search_str=null)
+function print_users($query)
+{
+  global $auth;
+  
+  if ($auth['type'] == 'db')
+  {
+    echo '<a id="user_list_link" href="edit_users.php?' . htmlspecialchars($query) . '">' . 
+         get_vocab('user_list') . "</a>\n";
+  }
+}
+
+
+function print_search($view, $year, $month, $day, $area, $room, $search_str=null)
 {
   if (!isset($search_str))
   {
     $search_str = '';
   }
   
-  echo "<label><a href=\"search.php?advanced=1\">" . get_vocab('search') . "</a></label>\n";
+  echo "<div>\n";
+  
+  echo '<label class="link"><a href="search.php?advanced=1">' . get_vocab('search') . "</a></label>\n";
   
   $form = new Form();
   
   $form->setAttributes(array('id'     => 'header_search',
                              'method' => 'post',
                              'action' => 'search.php'))
-       ->addHiddenInputs(array('day'   => $day,
+       ->addHiddenInputs(array('view'  => $view,
+                               'year'  => $year,
                                'month' => $month,
-                               'year'  => $year));
+                               'day'   => $day));
   if (!empty($area))
   {
     $form->addHiddenInput('area', $area);
@@ -191,61 +256,84 @@ function print_search($day, $month, $year, $area, $room, $search_str=null)
   $form->addElement($input);
   
   $form->render();
+  
+  echo "</div>\n";
 }
 
 
-function print_nav($day, $month, $year, $area, $room, $search_str=null, $simple=false)
+function print_banner($view, $year, $month, $day, $area, $room, $search_str=null, $simple=false)
 {
-  $query_string = "day=$day&amp;month=$month&amp;year=$year";
+  echo '<header class="banner' . (($simple) ? ' simple' : '') . "\">\n";
+  
+  $vars = array('view'  => $view,
+                'year'  => $year,
+                'month' => $month,
+                'day'   => $day);
+                
   if (!empty($area))
   {
-    $query_string .= "&amp;area=$area";
+    $vars['area'] = $area;
   }
   if (!empty($room))
   {
-    $query_string .= "&amp;room=$room";
+    $vars['room'] = $room;
   }
   
-  echo "<nav>\n";
-  echo "<ul>\n";
-  
-  echo "<li>\n";
-  print_header_site_info();
-  echo "</li>\n";
+  $query = http_build_query($vars, '', '&');
   
   if (!$simple)
   {
-    echo "<li>\n";
-    print_goto_date($day, $month, $year, $area, $room);
-    echo "</li>\n";
-    
-    echo "<li>\n";
-    print_help($query_string);
-    echo "</li>\n";
-    
-    echo "<li>\n";
-    print_rooms($query_string);
-    echo "</li>\n";
-    
-    echo "<li>\n";
-    print_report($query_string);
-    echo "</li>\n";
-    
-    echo "<li>\n";
-    print_search($day, $month, $year, $area, $room, $search_str);
-    echo "</li>\n";
-    
-    // For session protocols that define their own logon box...
-    if (function_exists(__NAMESPACE__ . "\\print_logon_box"))
-    {
-      echo "<li id=\"logon_box\">\n";
-      print_logon_box();
-      echo "</li>\n";
-    }
+    // print_mini_calendar($view, $year, $month, $day, $area, $room);
   }
   
-  echo "</ul>\n";
-  echo "</nav>\n";
+  print_header_site_info();
+  
+  
+  
+  if (!$simple)
+  {
+    echo "<nav class=\"container\">\n";
+    
+    echo "<nav>\n";
+    
+    echo "<nav class=\"menu\">\n";
+    print_help($query);
+    print_report($query);
+    print_rooms($query);
+    print_users($query);
+    echo "</nav>\n";
+    
+    echo "<nav class=\"logon\">\n";
+    print_outstanding($query);
+    // For session protocols that define their own logon box...
+    // (Note: This really needs to be sorted out so that the HTML
+    // is taken out of the session code)
+    if (function_exists(__NAMESPACE__ . "\\print_logon_box"))
+    {
+      print_logon_box();
+    }
+    else
+    {
+      $user = getUserName();
+      if (isset($user))
+      {
+        require_once MRBS_ROOT . '/session/functions_session.inc';
+        print_report_link($user);
+      }
+    }
+    echo "</nav>\n";
+    
+    echo "</nav>\n";
+    
+    echo "<nav>\n";
+    print_goto_date($view, $year, $month, $day, $area, $room);
+    print_search($view, $year, $month, $day, $area, $room, $search_str);
+    echo "</nav>\n";
+
+    echo "</nav>\n";
+  }
+  
+  echo "</header>\n";
 }
 
 
@@ -255,9 +343,7 @@ function print_nav($day, $month, $year, $area, $room, $search_str=null, $simple=
 function print_unsupported_message()
 {
   echo "<div class=\"unsupported_message\">\n";
-  echo "<header class=\"banner simple\">\n";
-  print_nav(null, null, null, null, null, null, $simple=true);
-  echo "</header>\n";
+  print_banner(null, null, null, null, null, null, null, $simple=true);
   echo "<div class=\"contents\">\n";
   echo "<p>" . get_vocab('browser_not_supported', get_vocab('mrbs_abbr')) . "</p>\n";
   echo "</div>\n";
@@ -268,7 +354,7 @@ function print_unsupported_message()
 // Print the page header
 // If $simple is true, then just print a simple header that doesn't require any database
 // access or JavaScript (useful for fatal errors and database upgrades).
-function print_theme_header($day, $month, $year, $area, $room, $simple=false, $search_str=null)
+function print_theme_header($view, $year, $month, $day, $area, $room, $simple=false, $search_str=null)
 {
   $headers = array("Content-Type: text/html; charset=" . get_charset());
   http_headers($headers);
@@ -304,18 +390,10 @@ function print_theme_header($day, $month, $year, $area, $room, $simple=false, $s
     <?php
   }
   
-  $class = 'banner';
-  if ($simple)
-  {
-    $class .= ' simple';
-  }
-  
   print_unsupported_message();
   
-  echo "<header class=\"$class\">\n";
-  print_nav($day, $month, $year, $area, $room, $search_str, $simple);
-  echo "</header>\n";
-
+  print_banner($view, $year, $month, $day, $area, $room, $search_str, $simple);
+  
   // This <div> should really be moved out of here so that we can always see
   // the matching closing </div>
   echo "<div class=\"contents\">\n";

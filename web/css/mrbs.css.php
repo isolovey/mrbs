@@ -55,11 +55,13 @@ input, textarea {
 // In order to prevent the display shifting about during the conversion process we set
 // the widths of both to be the same.
 ?>
-input.date, .js input[type="date"] {
+input.date,
+.js input[type="date"],
+input.flatpickr-input {
   width: 6.5em;
 }
 
-.js input[type="date"] {
+.js input:not(.flatpickr-input)[type="date"] {
   visibility: hidden;
 }
 
@@ -73,11 +75,15 @@ button.image {
   padding: 0;
 }
 
-div.contents, div.trailer {
+.contents, .banner {
+  padding: 0 1.5rem;
+}
+
+contents {
   float: left;
   width: 100%;
   box-sizing: border-box;
-  padding: 0 2em;
+  margin-bottom: 3em;
 }
 
 h1 {font-size: x-large; clear: both}
@@ -109,8 +115,8 @@ fieldset fieldset {position: relative; clear: left; width: 100%; padding: 0; bor
 fieldset fieldset legend {font-size: 0}        /* for IE: even if there is no legend text, IE allocates space  */
 
 
-label::after,
-.trailer_label a::after,
+label:not(.link)::after,
+label.link a::after,
 .list td:first-child::after {
   content: ':';
 }
@@ -119,8 +125,8 @@ label:empty::after, .group label::after {
   visibility: hidden;
 }
 
-[lang="fr"] label::after,
-[lang="fr"] .trailer_label a::after,
+[lang="fr"] label:not(.link)::after,
+[lang="fr"] label.link a::after,
 [lang="fr"] .list td:first-child::after  {
   content: '\0000a0:';  <?php // &nbsp; before the colon ?>
 }
@@ -228,7 +234,9 @@ table.display span.normal {
   display: inline;
 }
 
-select.room_area_select {margin-right: 0.5em}
+select.room_area_select {
+  margin: 0 0.5em;
+}
 
 <?php
 // Don't display anything with a class of js_none (used for example for hiding Submit
@@ -236,6 +244,78 @@ select.room_area_select {margin-right: 0.5em}
 ?>
 .js .js_none {display: none}
 .js .js_hidden {visibility: hidden}
+
+h2.date, span.timezone {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 0.1em;
+}
+
+span.timezone {
+  opacity: 0.8;
+  font-size: smaller;
+}
+
+nav.main_calendar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 1em;
+}
+
+nav.main_calendar > nav {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+}
+
+nav.main_calendar > nav:first-child {
+  justify-content: flex-start;
+}
+
+nav.main_calendar > nav:last-child {
+  justify-content: flex-end;
+}
+
+nav.view div.container {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+nav.view a, nav.arrow a {
+  -webkit-appearance: button;
+  -moz-appearance: button;
+  appearance: button;
+  background-color: buttonface;
+  cursor: pointer;
+  line-height: 1.8em;
+  padding: 0.2em 1em;
+  font-weight: normal;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+nav a.selected,
+nav.view a:hover,
+nav.view a:focus,
+nav.arrow a:hover,
+nav.arrow a:focus {
+  background-color: <?php echo $banner_back_color ?>;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+
+a.prev::before {
+  content: '\00276e';  /* HEAVY LEFT-POINTING ANGLE QUOTATION MARK ORNAMENT */
+}
+
+a.next::after {
+  content: '\00276f';  /* HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT */
+}
+
 
 /* ------------ ADMIN.PHP ---------------------------*/
 <?php
@@ -279,14 +359,17 @@ div#div_custom_html {
   margin-right: <?php echo $admin_form_gap ?>em;
 }
 
-#areaChangeForm div {
+.areaChangeForm div {
   float: left;
 }
   
-#roomChangeForm select, #areaChangeForm select {display: block; float: left; margin: -0.1em 1.5em 0 0}
-#roomChangeForm input, #areaChangeForm input {float: left; margin: -0.2em 0.5em 0 0}
+.roomChangeForm select, .areaChangeForm select {
+  font-size: larger;
+}
 
-#roomChangeForm input.button, #areaChangeForm button.image {
+.roomChangeForm input, .areaChangeForm input {float: left; margin: -0.2em 0.5em 0 0}
+
+.roomChangeForm input.button, .areaChangeForm button.image {
   display: block;
   float: left;
   margin: 0 0.7em
@@ -299,7 +382,7 @@ div.body_columns {max-width: 80%}
 .body_columns .admin_table th:first-child {border-left-color: <?php echo $admin_table_border_color ?>}
 
 
-/* ------------ DAY/WEEK/MONTH.PHP ------------------*/
+/* ------------ INDEX.PHP ------------------*/
 
 <?php
 $column_hidden_width  = 0;       // (%) width of the column for hidden days (set to 0 for no column at all; 1 for a narrow column);
@@ -317,17 +400,6 @@ if ($n_hidden_days < 7)                                  // (avoid the div by ze
 $column_month = number_format($column_month, 1, '.', '');  // (%) tidy the number up and make sure it's valid for CSS (no commas)
 
 ?>
-div#dwm_header {width: 100%; float: left; margin-top: 1.0em; margin-bottom: 0.5em}
-div#dwm_areas, div#dwm_rooms  {float: left; margin-right: 2.0em}
-#dwm_header h3 {font-size: small; font-weight: normal; text-decoration: underline; 
-    margin-top: 0; margin-bottom: 0.5em; padding-bottom: 0}
-#dwm_header ul {list-style-type: none; padding-left: 0; margin-left: 0; margin-top: 0}
-#dwm_header li {padding-left: 0; margin-left: 0}
-
-div#dwm {margin-bottom: 0.5em}
-#dwm {text-align: center}
-#dwm h2 {margin-bottom: 0}
-#dwm div.timezone {opacity: 0.8}
 
 .date_nav {
   float: left;
@@ -368,12 +440,13 @@ div#dwm {margin-bottom: 0.5em}
 table.dwm_main {
   float: left;
   clear: both; 
-  width: 100%; 
+  width: 100%;
+  margin: 1em 0;
   border-spacing: 0;
   border-collapse: separate;
   border-color: <?php echo $main_table_border_color ?>;
   border-width: <?php echo $main_table_border_width ?>px;
-  border-style: solid
+  border-style: solid;
 }
 
 .dwm_main td {padding: 0;
@@ -441,7 +514,7 @@ img.repeat_symbol {float: right; padding: 3px}
 div.cell_container {position: relative; float: left; width: 100%;        /* the containing div for a.new_booking */ 
 <?php echo ($month_cell_scrolling ? 'height:' : 'min-height:') ?> 100px} /* NOTE:  if you change the value of (min-)height, make sure you */
                                                                          /* also change the value of height in mrbs-ielte6.css */
-.month a.new_booking {position: absolute; top: 0; left: 0; z-index: 10}  /* needs to be above the base, but below the date (monthday) */
+#month_main a.new_booking {position: absolute; top: 0; left: 0; z-index: 10}  /* needs to be above the base, but below the date (monthday) */
        
 div.cell_header {position: relative; width: 100%; z-index: 20;         /* needs to be above the new booking anchor */
      min-height: 20%; height: 20%; max-height: 20%; overflow: hidden}
@@ -836,7 +909,7 @@ div#div_custom_html {
   margin-bottom: 0.5em;
 }
 
-.standard input[type="text"]:not(.date),
+.standard input[type="text"]:not(.date):not(.flatpickr-input),
 .standard input[type="email"],
 .standard input[type="password"],
 .standard input[type="search"],
@@ -975,8 +1048,9 @@ form#add_new_user {margin-left: 1em}
 /* ------------ FUNCTIONS.INC -------------------*/
 
 .banner {
-  height: 100%;
-  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
   background-color: <?php echo $banner_back_color ?>;
   color: <?php echo $banner_font_color ?>;
   border-color: <?php echo $banner_border_color ?>;
@@ -984,56 +1058,15 @@ form#add_new_user {margin-left: 1em}
   border-style: solid;
 }
 
-.banner.simple, .banner.simple nav {
-  height: auto;
-}
-
 .banner .company {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   font-size: large;
-  padding: 0.3em 1em;
-  text-align: center;
-  vertical-align: middle;
-}
-
-.banner .company div {
-  width: 100%;
-}
-
-.banner nav {
-  display: table;
-  height: 100%;
-  width: 100%;
-}
-
-.banner ul {
-  list-style: none;
-  display: table;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding-left: 0;
-}
-
-.banner li {
-  display: table-cell;
-  height: 100%;
-  text-align: center;
-  vertical-align: middle;
-  border-color: <?php echo $banner_border_color ?>;
-  border-style: solid;
-  border-width: 0 0 0 <?php echo $banner_border_cell_width ?>px;
-  padding: 0.3em 0.5em;
-}
-
-.banner li:first-child {
-  border-left-width: 0;
-}
-
-#logon_box a {
-  display: block;
-  width: 100%;
-  padding-top: 0.3em;
-  padding-bottom: 0.3em;
+  padding: 0.5rem 2rem 0.5rem 0;
+  margin-right: 2rem;
+  white-space: nowrap;
 }
 
 .banner a:link, .banner a:visited, .banner a:hover {
@@ -1041,7 +1074,7 @@ form#add_new_user {margin-left: 1em}
   font-weight: normal;
 }
 
-.banner a:link {
+.banner a:link, nav.logon input {
   color: <?php echo $anchor_link_color_banner ?>;
 }
 
@@ -1053,8 +1086,77 @@ form#add_new_user {margin-left: 1em}
   color: <?php echo $anchor_hover_color_banner ?>;
 }
 
-#form_nav input[type="submit"] {
-  margin-left: 0.5em;
+.banner nav.container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: stretch;
+  flex-wrap: wrap;
+  padding: 0.75em 0;
+}
+
+.banner nav.container > nav {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.banner nav.container > nav > nav {
+  align-items: center;
+}
+
+.banner nav.container > nav:first-child {
+  flex-wrap: wrap-reverse;
+}
+
+.banner nav.container > nav:last-child > * {
+  display: flex;
+  align-items: center;
+}
+
+nav.menu, nav.logon {
+  margin-left: 1rem;
+  padding-left: 1rem;
+}
+
+nav.menu {
+  display: flex;
+}
+
+nav.logon {
+  display: flex;
+  align-items: center;
+}
+
+nav.logon input {
+  background: none;
+  border: none;
+}
+
+.banner nav a,
+nav.logon input {
+  display: inline-block;
+  text-align: center;
+  padding: 0.3rem 1rem;
+  line-height: 1.5em;
+  border-radius: 0.8em;
+}
+
+.banner a.attention {
+  background-color: #ff530d;
+}
+
+.banner nav a:hover,
+nav.logon input:hover {
+  background-color: #bdd4de;
+  color: <?php echo $standard_font_color ?>;
+}
+
+#form_nav {
+  padding-right: 1rem;
+  margin-right: 1rem;
 }
 
 input.link[type="submit"] {
@@ -1071,32 +1173,28 @@ form#show_my_entries input.link[type="submit"] {
   padding: 0.3em 0;
   font-weight: normal;
 }
-  
 
-<?php
-// The rules below are concerned with keeping the date selector in the header a constant width, so
-// that the header doesn't jump around when the page is loaded
-?>
-
-.js .banner #Form1 select {
-  display: none;
+div#color_key{
+  display: inline-grid;
+  grid-template-columns: repeat(auto-fill, minmax(20ch, 1fr));
+  width: 100%;
+  margin-top: 1em;
 }
 
-table#colour_key {clear: both; float: left; border-spacing: 0; border-collapse: collapse; margin-bottom: 0.5em}
-#colour_key td {width: 7.0em; padding: 2px; font-weight: bold;
-    color: <?php echo $colour_key_font_color ?>;
-    border: <?php echo $main_table_cell_border_width ?>px solid <?php echo $main_table_body_h_border_color ?>}
-#colour_key td#row_padding {border-right: 0; border-bottom: 0}
-
-form#header_search {
-  display: inline-block;
+div#color_key > div {
+  color: <?php echo $color_key_font_color ?>;
+  word-wrap: break-word;
+  padding: 0.3em;
+  margin: -1px 0 0 -1px; <?php // to collapse the borders ?>
+  font-weight: bold;
+  border: <?php echo $main_table_cell_border_width ?>px solid <?php echo $main_table_body_h_border_color ?>
 }
 
 #header_search input {
-  width: 6em;
+  width: 8em;
+  margin-left: 0.5em;
 }
 
-div#n_outstanding {margin-top: 0.5em}
 .banner .outstanding a {color: <?php echo $outstanding_color ?>}
 
 /* ------------ HELP.PHP ------------------------*/
@@ -1139,35 +1237,69 @@ div.problem_report {
 }
 
 /* ------------ MINCALS.PHP ---------------------*/
-#cals {float: right}
-div#cal_last {float: left}
-div#cal_this {float: left; margin-left: 1.0em}
-div#cal_next {float: left; margin-left: 1.0em}
 
-table.calendar {
+table.minicalendar {
   border-spacing: 0;
   border-collapse: collapse;
 }
 
-.calendar th {
+.minicalendar th {
   min-width: 2.0em;
   text-align: center;
   font-weight: normal;
   background-color: transparent;
-  color: <?php echo $standard_font_color ?>;
 }
 
-.calendar td {
+.minicalendar thead tr:first-child th {
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.5em;
+}
+
+.minicalendar thead tr:first-child th:first-child {
+  text-align: left;
+}
+
+.minicalendar thead tr:first-child th:last-child {
+  text-align: right;
+}
+
+.minicalendar td {
   text-align: center;
   font-size: x-small;
 }
 
-<?php
-// set the styling for the "hidden" days in the mini-cals
-?>
-.calendar th.hidden {background-color: <?php echo $calendar_hidden_color ?>} 
-.calendar td.hidden {background-color: <?php echo $calendar_hidden_color ?>; font-weight: bold} 
-.calendar a.current {font-weight: bold; color: <?php echo $highlight_font_color ?>}
+.minicalendar a.arrow {
+  display: block;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+}
+
+.minicalendar td > * {
+  display: block;
+  width: 2em;
+  height: 2em;
+  line-height: 2em;
+  margin: auto;
+  border-radius: 50%;
+}
+
+.minicalendar td.today a,
+.minicalendar td a:hover {
+  background-color: <?php echo $minical_today_color ?>;
+  color: <?php echo $standard_font_color ?>
+}
+
+.minicalendar .view {
+  background-color: <?php echo $minical_view_color ?>;
+}
+
+.minicalendar .hidden {
+  opacity: 0.7
+}
+
+.minicalendar a.current {font-weight: bold; color: <?php echo $highlight_font_color ?>}
 td#sticky_day {border: 1px dotted <?php echo $highlight_font_color ?>}
 td.mincals_week_number { opacity: 0.5; font-size: 60%; }
 
@@ -1258,65 +1390,6 @@ div#site_faq_body {margin-top: 2.0em}
 #site_faq_body h4 {border-top: 1px solid <?php echo $site_faq_entry_border_color ?>; padding-top: 0.5em; margin-top: 0} 
 #site_faq_body div {padding-bottom: 0.5em}
 #site_faq_body :target {background-color: <?php echo $help_highlight_color ?>}
-
-
-/* ------------ TRAILER.INC ---------------------*/
-div#trailer {
-  border-top: 1px solid <?php echo $trailer_border_color ?>; 
-  border-bottom: 1px solid <?php echo $trailer_border_color ?>; 
-  float: left;
-  clear: left;
-  margin-top: 1.0em; margin-bottom: 1.5em;
-  padding-top: 0.3em; padding-bottom: 0.3em;
-}
-
-#trailer div {
-  float: left;
-  width: 100%;
-}
-
-#trailer div.trailer_label {
-  float: left;
-  clear: left;
-  width: 20%;
-  max-width: 9.0em;
-  font-weight: bold;
-}
-
-#trailer div.trailer_links {
-  float: left;
-  width: 79%;  /* 79 to avoid rounding problems */
-  padding-left: 1em;
-}
-
-.trailer_label span {
-  margin-right: 1.0em;
-}
-
-#trailer span.current {
-  font-weight: bold;
-}
-
-#trailer span.hidden {
-  font-weight: normal; 
-  background-color: <?php echo $body_background_color ?>;  /* hack: only necessary for IE6 to prevent blurring with opacity */
-  opacity: 0.5;  /* if you change this value, change it in the IE sheets as well */
-}
-
-#trailer .current a {
-  color: <?php echo $highlight_font_color ?>;
-}
-
-div#simple_trailer {
-  clear: both;
-  text-align: center;
-  padding-top: 1.0em;
-  padding-bottom: 2.0em;
-}
-
-#simple_trailer a {
-  padding: 0 1.0em 0 1.0em;
-}
 
 
 /* ------------ VIEW_ENTRY.PHP ------------------*/

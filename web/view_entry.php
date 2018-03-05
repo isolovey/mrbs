@@ -334,7 +334,7 @@ if (isset($action) && ($action == "export"))
 // PHASE 1 - VIEW THE ENTRY
 // ------------------------
 
-print_header($day, $month, $year, $area, isset($room) ? $room : null);
+print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
 
 
 // Need to tell all the links where to go back to after an edit or delete
@@ -348,18 +348,14 @@ if (!isset($returl))
   // a sensible place to go to afterwards
   else
   {
-    switch ($default_view)
-    {
-      case "month":
-        $returl = "month.php";
-        break;
-      case "week":
-        $returl = "week.php";
-        break;
-      default:
-        $returl = "day.php";
-    }
-    $returl .= "?year=$year&month=$month&day=$day&area=$area";
+    $vars = array('view'  => $default_view,
+                  'year'  => $year,
+                  'month' => $month,
+                  'day'   => $day,
+                  'area'  => $area,
+                  'room'  => $room);
+                  
+    $returl .= 'index.php?' . http_build_query($vars, '', '&');;
   }
 }
 
@@ -617,5 +613,4 @@ if (isset($HTTP_REFERER)) //remove the link if displayed from an email
 }
 
 
-output_trailer();
-
+print_footer();

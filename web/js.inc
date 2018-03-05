@@ -1,7 +1,7 @@
 <?php 
 namespace MRBS;
 
-global $day, $month, $year, $room, $area;
+global $view, $year, $month, $day, $area, $room;
 
 $page = this_page('.php');
 
@@ -103,9 +103,15 @@ if (NULL !== ($datepicker_lang_file = get_datepicker_lang_file('jquery/ui/i18n')
 <script type="text/javascript" src="js/functions.js.php?<?php echo $standard_query_string ?>"></script>
 <script type="text/javascript" src="js/datepicker.js.php?<?php echo $standard_query_string ?>"></script>
 <script type="text/javascript" src="js/general.js.php?<?php echo $standard_query_string ?>"></script>
+<script type="text/javascript" src="js/flatpickr/flatpickr.min.js"></script>
 
-    
 <?php
+$dir = 'js/flatpickr/l10n';
+if (null !== ($flatpickr_lang_file = get_flatpickr_lang_file($dir)))
+{
+  echo "<script type=\"text/javascript\" src=\"$dir/${flatpickr_lang_file}\"></script>\n";
+}
+
 // dataTables initialisation
 if (in_array($page, array('admin', 'edit_users', 'pending', 'report', 'search')))
 {
@@ -155,7 +161,7 @@ if (is_readable("js/$page.js.php"))
 }
 
 // The day, week and month views do refresh by Ajax.
-if (in_array($page, array('day', 'week', 'month')))
+if ($page == 'calendar')
 {
   ?>
   <script type="text/javascript" src="js/refresh.js.php?<?php echo $standard_query_string ?>"></script>
@@ -201,7 +207,8 @@ if (in_array($page, array('day', 'week')))
 
 $(window).on('load', function() {
 
-  var args = {area: '<?php echo $area?>',
+  var args = {view: '<?php echo $view?>',
+              area: '<?php echo $area?>',
               room: '<?php echo $room?>',
               page: '<?php echo $page?>',
               page_date: '<?php echo format_iso_date($year, $month, $day) ?>'};
