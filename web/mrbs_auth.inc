@@ -27,10 +27,8 @@ require_once "session/session_$auth[session].inc";
 // These pages are open to the public by default as they only contain
 // read features.   However if $auth['deny_public_access'] is TRUE then
 // access to the public is denied
-$page_level['day.php']                   = ($auth['deny_public_access']) ? 1 : 0;
+$page_level['index.php']                 = ($auth['deny_public_access']) ? 1 : 0;
 $page_level['help.php']                  = ($auth['deny_public_access']) ? 1 : 0;
-$page_level['month.php']                 = ($auth['deny_public_access']) ? 1 : 0;
-$page_level['week.php']                  = ($auth['deny_public_access']) ? 1 : 0;
 
 // These pages reveal usernames, which could be of assistance to someone trying to
 // break into the system, so users are required to be logged in before viewing them.
@@ -47,15 +45,18 @@ $page_level['approve_entry_handler.php'] = 1;  // Ordinary users are allowed to 
 $page_level['del_entry.php']             = ($auth['only_admin_can_book']) ? 2 : 1;
 $page_level['edit_room.php']             = 1;  // Ordinary users can view room details
 $page_level['edit_entry.php']            = ($auth['only_admin_can_book']) ? 2 : 1;
-$page_level['check_slot_ajax.php']       = $page_level['edit_entry.php'];  // only used by edit_entry.php
 $page_level['edit_entry_handler.php']    = ($auth['only_admin_can_book']) ? 2 : 1;
 $page_level['edit_users.php']            = 1;  // Ordinary users can edit their own details
 $page_level['pending.php']               = 1;  // Ordinary users can view their own entries
 
+// Ajax pages
+$page_level['check_slot.php']            = $page_level['edit_entry.php'];  // only used by edit_entry.php
+$page_level['del_entry.php']             = 2;
+$page_level['minicalendar.php']          = ($auth['deny_public_access']) ? 1 : 0;
+
 // These pages have a minimum access level of 2 as they only contain admin features
 $page_level['add.php']                   = 2;
 $page_level['del.php']                   = 2;
-$page_level['del_entry_ajax.php']        = 2;
 $page_level['edit_area.php']             = 2;
 $page_level['edit_area_handler.php']     = 2;
 $page_level['edit_room_handler.php']     = 2;
@@ -105,7 +106,7 @@ function getAuthorised($level)
 function checkAuthorised($just_check=FALSE)
 {
   global $page_level, $max_level;
-  global $day, $month, $year, $area, $room;
+  global $view, $year, $month, $day, $area, $room;
   global $PHP_SELF;
 
   $page = this_page();
@@ -148,7 +149,7 @@ function checkAuthorised($just_check=FALSE)
     {
       $area = get_default_area();
     }
-    showAccessDenied($day, $month, $year, $area, isset($room) ? $room : null);
+    showAccessDenied($view, $year, $month, $day, $area, isset($room) ? $room : null);
     exit();
   }
   
@@ -191,11 +192,11 @@ function getWritable($creator, $user, $room)
  * 
  * Returns: Nothing
  */
-function showAccessDenied($day=null, $month=null, $year=null, $area=null, $room=null)
+function showAccessDenied($view=null, $year=null, $month=null, $day=null, $area=null, $room=null)
 {
   global $HTTP_REFERER;
 
-  print_header($day, $month, $year, $area, isset($room) ? $room : null);
+  print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
 
   echo "<h1>" . get_vocab("accessdenied") . "</h1>\n";
   echo "<p>" . get_vocab("norights") . "</p>\n";

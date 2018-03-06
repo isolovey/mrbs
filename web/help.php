@@ -10,7 +10,7 @@ checkAuthorised();
 $user = getUserName();
 $is_admin = (authGetUserLevel($user) >= $max_level);
 
-print_header($day, $month, $year, $area, isset($room) ? $room : null);
+print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
 
 echo "<h3>" . get_vocab("about_mrbs") . "</h3>\n";
 
@@ -59,5 +59,4 @@ echo "</p>\n";
  
 require_once "site_faq/site_faq" . $faqfilelang . ".html";
 
-output_trailer();
-
+print_footer();

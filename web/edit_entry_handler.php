@@ -12,7 +12,7 @@ function invalid_booking($message)
 {
   global $day, $month, $year, $area, $room;
   
-  print_header($day, $month, $year, $area, isset($room) ? $room : null);
+  print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
   echo "<h1>" . get_vocab('invalid_booking') . "</h1>\n";
   echo "<p>$message</p>\n";
   // Print footer and exit
@@ -453,7 +453,7 @@ else
 }
 if (!getWritable($create_by, $user, $target_room))
 {
-  showAccessDenied($day, $month, $year, $area, isset($room) ? $room : null);
+  showAccessDenied($view, $year, $month, $day, $area, isset($room) ? $room : null);
   exit;
 }
 
@@ -589,10 +589,12 @@ if (!$ajax || !$commit)
 //       have to preserve the search parameter in the query string)
 if (isset($returl) && ($returl !== ''))
 {
-  $returl = parse_url($returl, PHP_URL_PATH);
+  $returl = parse_url($returl);
   if ($returl !== false)
   {
-    $returl = explode('/', $returl);
+    parse_str($returl['query'], $query_vars);
+    $view = (isset($query_vars['view'])) ? $query_vars['view'] : $default_view;
+    $returl = explode('/', $returl['path']);
     $returl = end($returl);
   }
 }
@@ -602,18 +604,7 @@ if (empty($returl) ||
                             'edit_entry_handler.php',
                             'search.php')))
 {
-  switch ($default_view)
-  {
-    case 'month':
-      $returl = 'month.php';
-      break;
-    case 'week':
-      $returl = 'week.php';
-      break;
-    default:
-      $returl = 'day.php';
-      break;
-  }
+  $returl = 'index.php';
 }
 
 // If we haven't been given a sensible date then get out of here and don't try and make a booking
@@ -623,9 +614,6 @@ if (!isset($start_day) || !isset($start_month) || !isset($start_year) || !checkd
   exit;
 }
 
-// Now construct the new query string
-$returl .= "?year=$year&month=$month&day=$day";
-
 // If the old sticky room is one of the rooms requested for booking, then don't change the sticky room.
 // Otherwise change the sticky room to be one of the new rooms.
 if (!in_array($room, $rooms))
@@ -634,8 +622,16 @@ if (!in_array($room, $rooms))
 } 
 // Find the corresponding area
 $area = mrbsGetRoomArea($room);
-// Complete the query string
-$returl .= "&area=$area&room=$room";
+
+// Now construct the new query string
+$vars = array('view'  => (isset($view)) ? $view : $default_view,
+              'year'  => $year,
+              'month' => $month,
+              'day'   => $day,
+              'area'  => $area,
+              'room'  => $room);
+              
+$returl .= '?' . http_build_query($vars, '', '&');
 
 
 // Check to see whether this is a repeat booking and if so, whether the user
@@ -646,7 +642,7 @@ if (isset($rep_type) && ($rep_type != REP_NONE) &&
     !$is_admin &&
     !empty($auth['only_admin_can_book_repeat']))
 {
-  showAccessDenied($day, $month, $year, $area, isset($room) ? $room : null);
+  showAccessDenied($view, $year, $month, $day, $area, isset($room) ? $room : null);
   exit;
 }
 
@@ -790,7 +786,7 @@ if ($result['valid_booking'])
 
 else
 {
-  print_header($day, $month, $year, $area, isset($room) ? $room : null);
+  print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
     
   echo "<h2>" . get_vocab("sched_conflict") . "</h2>\n";
   if (!empty($result['violations']['errors']))
@@ -885,5 +881,4 @@ if (empty($result['violations']['errors'])  &&
 
 echo "</div>\n";
 
-output_trailer();
-
+print_footer();

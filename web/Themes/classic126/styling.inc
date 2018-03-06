@@ -10,7 +10,7 @@ $body_background_color          = "#ffffed";    // background colour for the mai
 $standard_font_color            = "black";      // default font color
 $header_font_color              = "#ffffff";    // font color for text in headers
 $highlight_font_color           = "red";        // used for highlighting text (eg links, errors)
-$colour_key_font_color          = "#5B69A6";    // used in the colour key table
+$color_key_font_color           = "#5B69A6";    // used in the colour key table
 
 $banner_back_color              = "#c0e0ff";    // background colour for banner
 $banner_border_color            = "#5B69A6";    // border colour for banner
@@ -46,8 +46,6 @@ $report_h3_border_color         = "#879AA8";              // border colour for <
 $search_table_border_color      = $standard_font_color;
 
 $site_faq_entry_border_color    = "#C3CCD3";          // used to separate individual FAQ's in help.php
-
-$trailer_border_color           = $main_table_border_color;
 
 $anchor_link_color              = "#5B69A6";          // link color
 $anchor_visited_color           = "#5B69A6";          // link color (visited)
