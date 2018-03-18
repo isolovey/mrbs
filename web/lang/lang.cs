@@ -19,7 +19,7 @@ $vocab["help"]               = "Nápověda";
 $vocab["search"]             = "Hledat";
 $vocab["outstanding"]        = "čekající na schválení";
 
-// Used in day.php
+// Used in index.php
 $vocab["bookingsfor"]        = "Objednáno pro";
 $vocab["bookingsforpost"]    = ""; // Goes after the date
 $vocab["areas"]              = "Oblasti";
@@ -30,6 +30,13 @@ $vocab["goto"]               = "Přejít na";
 $vocab["highlight_line"]     = "Označte tuto řádku";
 $vocab["click_to_reserve"]   = "Klepněte na buňku, abyste provedli rezervaci.";
 $vocab["timezone"]           = "Časová zóna";
+$vocab["weekbefore"]         = "Týden dozadu";
+$vocab["weekafter"]          = "Týden dopředu";
+$vocab["gotothisweek"]       = "Tento týden";
+$vocab["monthbefore"]        = "Měsíc dozadu";
+$vocab["monthafter"]         = "Měsic dopředu";
+$vocab["gotothismonth"]      = "Tento měsíc";
+$vocab["no_rooms_for_area"]  = "Pro tuto místnost/zdroj není definována žádná oblast!";
 
 // Used in trailer.inc
 $vocab["viewday"]            = "Dny";
@@ -59,9 +66,9 @@ $vocab["minute_lc"]          = "minuta";
 $vocab["minutes"]            = "minuty";
 $vocab["hour_lc"]            = "hodina";
 $vocab["hours"]              = "hodiny";
-$vocab["day_lc"]             = "den";
+$vocab["day"]                = "den";
 $vocab["days"]               = "dny";
-$vocab["week_lc"]            = "týden";
+$vocab["week"]               = "týden";
 $vocab["weeks"]              = "týdny";
 $vocab["year_lc"]            = "rok";
 $vocab["years"]              = "roky";
@@ -268,7 +275,6 @@ $vocab["of"]                 = " o ";
 $vocab["previous"]           = "Předchozi";
 $vocab["next"]               = "Další";
 $vocab["entry"]              = "Záznam";
-$vocab["advanced_search"]    = "Rozšířené hledání";
 $vocab["search_button"]      = "Hledat";
 $vocab["search_for"]         = "Hledat co";
 $vocab["from"]               = "Od";
@@ -316,19 +322,6 @@ $vocab["delete_entries_warning"] = "UPOZORNĚNÍ! Vymaže všechny položky odpo
                                    "chcete pokračovat?\n\n" .
                                    "Celkový počet položek, které budou smazány: ";
 $vocab["delete_entries_failed"] = "Položky nemohou být odstraněny.";
-
-// Used in week.php
-$vocab["weekbefore"]         = "Týden dozadu";
-$vocab["weekafter"]          = "Týden dopředu";
-$vocab["gotothisweek"]       = "Tento týden";
-
-// Used in month.php
-$vocab["monthbefore"]        = "Měsíc dozadu";
-$vocab["monthafter"]         = "Měsic dopředu";
-$vocab["gotothismonth"]      = "Tento měsíc";
-
-// Used in {day week month}.php
-$vocab["no_rooms_for_area"]  = "Pro tuto místnost/zdroj není definována žádná oblast!";
 
 // Used in admin.php
 $vocab["edit"]               = "Upravit";

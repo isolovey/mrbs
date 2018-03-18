@@ -1362,7 +1362,7 @@ else
     Form::checkToken(true);
   }
   
-  checkAuthorised();
+  checkAuthorised(this_page());
   // Also need to know whether they have admin rights
   $user = getUserName();
   $user_level = authGetUserLevel($user);
@@ -1627,7 +1627,7 @@ if ($ajax)
 }
 elseif ($output_form)
 {
-  print_header($day, $month, $year, $area, isset($room) ? $room : null);
+  print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
 }
 else
 {
@@ -1791,6 +1791,5 @@ if ($cli_mode)
 
 if ($output_form)
 {
-  output_trailer();
+  print_footer();
 }
-
