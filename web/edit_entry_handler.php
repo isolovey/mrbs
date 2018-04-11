@@ -1,9 +1,10 @@
 <?php
 namespace MRBS;
 
-require "defaultincludes.inc";
-require_once "mrbs_sql.inc";
-require_once "functions_ical.inc";
+require 'defaultincludes.inc';
+require_once 'mrbs_sql.inc';
+require_once 'functions_ical.inc';
+require_once 'functions_mail.inc';
 
 use MRBS\Form\Form;
 use MRBS\Form\ElementInputSubmit;
@@ -12,7 +13,7 @@ function invalid_booking($message)
 {
   global $day, $month, $year, $area, $room;
   
-  print_header($day, $month, $year, $area, isset($room) ? $room : null);
+  print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
   echo "<h1>" . get_vocab('invalid_booking') . "</h1>\n";
   echo "<p>$message</p>\n";
   // Print footer and exit
@@ -20,7 +21,7 @@ function invalid_booking($message)
 }
 
 $ajax = get_form_var('ajax', 'int');
-if ($ajax && !checkAuthorised(TRUE))
+if ($ajax && !checkAuthorised(this_page(), true))
 {
   exit;
 }
@@ -32,7 +33,7 @@ Form::checkToken();
 
 // (1) Check the user is authorised for this page
 //  ---------------------------------------------
-checkAuthorised();
+checkAuthorised(this_page());
 
 // Also need to know whether they have admin rights
 $user = getUserName();
@@ -93,7 +94,6 @@ $formvars = array('create_by'          => 'string',
                   'confirmed'          => 'string',
                   'back_button'        => 'string',
                   'timetohighlight'    => 'int',
-                  'page'               => 'string',
                   'commit'             => 'string');
       
 foreach($formvars as $var => $var_type)
@@ -453,7 +453,7 @@ else
 }
 if (!getWritable($create_by, $user, $target_room))
 {
-  showAccessDenied($day, $month, $year, $area, isset($room) ? $room : null);
+  showAccessDenied($view, $year, $month, $day, $area, isset($room) ? $room : null);
   exit;
 }
 
@@ -568,7 +568,6 @@ if (isset($rep_type) && ($rep_type != REP_NONE))
   }
 }
 
-
 // If we're committing this booking, get the start day/month/year and
 // make them the current day/month/year
 if ($commit)
@@ -590,10 +589,12 @@ if ($commit)
 //       have to preserve the search parameter in the query string)
 if (isset($returl) && ($returl !== ''))
 {
-  $returl = parse_url($returl, PHP_URL_PATH);
+  $returl = parse_url($returl);
   if ($returl !== false)
   {
-    $returl = explode('/', $returl);
+    parse_str($returl['query'], $query_vars);
+    $view = (isset($query_vars['view'])) ? $query_vars['view'] : $default_view;
+    $returl = explode('/', $returl['path']);
     $returl = end($returl);
   }
 }
@@ -603,18 +604,7 @@ if (empty($returl) ||
                             'edit_entry_handler.php',
                             'search.php')))
 {
-  switch ($default_view)
-  {
-    case 'month':
-      $returl = 'month.php';
-      break;
-    case 'week':
-      $returl = 'week.php';
-      break;
-    default:
-      $returl = 'day.php';
-      break;
-  }
+  $returl = 'index.php';
 }
 
 // If we haven't been given a sensible date then get out of here and don't try and make a booking
@@ -624,9 +614,6 @@ if (!isset($start_day) || !isset($start_month) || !isset($start_year) || !checkd
   exit;
 }
 
-// Now construct the new query string
-$returl .= "?year=$year&month=$month&day=$day";
-
 // If the old sticky room is one of the rooms requested for booking, then don't change the sticky room.
 // Otherwise change the sticky room to be one of the new rooms.
 if (!in_array($room, $rooms))
@@ -635,8 +622,16 @@ if (!in_array($room, $rooms))
 } 
 // Find the corresponding area
 $area = mrbsGetRoomArea($room);
-// Complete the query string
-$returl .= "&area=$area&room=$room";
+
+// Now construct the new query string
+$vars = array('view'  => (isset($view)) ? $view : $default_view,
+              'year'  => $year,
+              'month' => $month,
+              'day'   => $day,
+              'area'  => $area,
+              'room'  => $room);
+              
+$returl .= '?' . http_build_query($vars, '', '&');
 
 
 // Check to see whether this is a repeat booking and if so, whether the user
@@ -647,7 +642,7 @@ if (isset($rep_type) && ($rep_type != REP_NONE) &&
     !$is_admin &&
     !empty($auth['only_admin_can_book_repeat']))
 {
-  showAccessDenied($day, $month, $year, $area, isset($room) ? $room : null);
+  showAccessDenied($view, $year, $month, $day, $area, isset($room) ? $room : null);
   exit;
 }
 
@@ -722,7 +717,7 @@ foreach ($rooms as $room_id)
 
 $just_check = $ajax && !$commit;
 $this_id = (isset($id)) ? $id : NULL;
-$send_mail = ($no_mail) ? FALSE : $need_to_send_mail;
+$send_mail = ($no_mail) ? FALSE : need_to_send_mail();
 
 // Wrap the editing process in a transaction, because if deleting the old booking should fail for
 // some reason then we'll potentially be left with two overlapping bookings.  A deletion could fail
@@ -768,13 +763,13 @@ if ($ajax)
   {
     // Generate the new HTML
     require_once "functions_table.inc";
-    if ($page == 'day')
+    if ($view == 'day')
     {
-      $result['table_innerhtml'] = day_table_innerhtml($day, $month, $year, $room, $area, $timetohighlight);
+      $result['table_innerhtml'] = day_table_innerhtml($year, $month, $day, $area, $room, $timetohighlight);
     }
     else
     {
-      $result['table_innerhtml'] = week_table_innerhtml($day, $month, $year, $room, $area, $timetohighlight);
+      $result['table_innerhtml'] = week_table_innerhtml($year, $month, $day, $area, $room, $timetohighlight);
     }
   }
   http_headers(array("Content-Type: application/json"));
@@ -791,7 +786,7 @@ if ($result['valid_booking'])
 
 else
 {
-  print_header($day, $month, $year, $area, isset($room) ? $room : null);
+  print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
     
   echo "<h2>" . get_vocab("sched_conflict") . "</h2>\n";
   if (!empty($result['violations']['errors']))
@@ -886,5 +881,4 @@ if (empty($result['violations']['errors'])  &&
 
 echo "</div>\n";
 
-output_trailer();
-
+print_footer();
