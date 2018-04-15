@@ -757,9 +757,9 @@ if (!empty($import))
 }
 
 // Check the user is authorised for this page
-checkAuthorised();
+checkAuthorised(this_page());
 
-print_header($day, $month, $year, $area, $room);
+print_header($view, $year, $month, $day, $area, $room);
 
 
 // PHASE 2 - Process the files
@@ -894,5 +894,4 @@ $form->addElement($fieldset);
 $form->render();
 
   
-output_trailer();
-
+print_footer();

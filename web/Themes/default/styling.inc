@@ -6,15 +6,18 @@ namespace MRBS;
 // ***** COLOURS ************************
 // Colours used in MRBS.    All the colours are defined here as PHP variables
 
-$body_background_color          = "#e7ebee";    // background colour for the main body
+$body_background_color          = "#f9fbfc";    // background colour for the main body
 $standard_font_color            = "#0B263B";    // default font color
 $header_font_color              = "#ffffff";    // font color for text in headers
 $highlight_font_color           = "#ff0066";    // used for highlighting text (eg links, errors)
-$colour_key_font_color          = $standard_font_color;    // used in the colour key table
+$color_key_font_color           = $standard_font_color;    // used in the colour key table
 
-$banner_back_color              = "#4b667b";    // background colour for banner
+$banner_back_color              = "dodgerblue";    // background colour for banner
 $banner_border_color            = $body_background_color;    // border colour for banner
 $banner_font_color              = $header_font_color;       // font colour for banner
+
+$minical_view_color             = "#2b3a42";    // used for highlighting the dates in the current view
+$minical_today_color            = "#bdd4de";    // used for highlighting today
 
 $header_back_color              = $banner_back_color;  // background colour for headers
 
@@ -23,10 +26,10 @@ $admin_table_header_sep_color   = $body_background_color; // vertical separator 
 $admin_table_header_font_color  = $header_font_color;     // font colour for header
 $admin_table_border_color       = "#C3CCD3";
 
-$main_table_border_color        = $body_background_color; // border colour for day/week/month tables - outside
-$main_table_header_border_color = $body_background_color; // border colour for day/week/month tables - header
+$main_table_border_color        = "#dddddd";              // border colour for day/week/month tables - outside
+$main_table_header_border_color = "#dddddd"; // border colour for day/week/month tables - header
 $main_table_body_h_border_color = "#ffffff";              // border colour for day/week/month tables - body, horizontal
-$main_table_body_v_border_color = $body_background_color; // border colour for day/week/month tables - body, vertical
+$main_table_body_v_border_color = "#e4e4e4";              // border colour for day/week/month tables - body, vertical
 $main_table_month_color         = "#ffffff";    // background colour for days in the month view
 $main_table_month_invalid_color = "#d1d9de";    // background colour for invalid days in the month view
 $main_table_slot_invalid_color  = "#d1d9de";    // background colour for invalid slots in the day and week views
@@ -51,25 +54,23 @@ $search_table_border_color      = $standard_font_color;
 
 $site_faq_entry_border_color    = "#C3CCD3";              // used to separate individual FAQ's in help.php
 
-$trailer_border_color           = $standard_font_color;
-
 $anchor_link_color              = $standard_font_color;        // link color
 $anchor_visited_color           = $anchor_link_color;          // link color (visited)
-$anchor_hover_color             = $highlight_font_color;       // link color (hover)
+$anchor_hover_color             = $anchor_link_color;          // link color (hover)
 
 $anchor_link_color_banner       = $header_font_color;          // link color
 $anchor_visited_color_banner    = $anchor_link_color_banner;   // link color (visited)
 $anchor_hover_color_banner      = $anchor_link_color_banner;   // link color (hover)
 
-$anchor_link_color_header       = $header_font_color;          // link color
+$anchor_link_color_header       = $standard_font_color;          // link color
 $anchor_visited_color_header    = $anchor_link_color_header;   // link color (visited)
 $anchor_hover_color_header      = $anchor_link_color_header;   // link color (hover)
 
 $column_hidden_color            = $main_table_month_invalid_color;    // hidden days in the week and month views
 $calendar_hidden_color          = "#dae0e4";                          // hidden days in the mini-cals
 $row_even_color                 = "#ffffff";        // even rows in the day and week views
-$row_odd_color                  = "#f2f4f6";        // even rows in the day and week views
-$row_highlight_color            = "#ffc0da";        // used for highlighting a row
+$row_odd_color                  = "#efefef";        // even rows in the day and week views
+$row_highlight_color            = "dodgerblue";        // used for highlighting a row
 
 $help_highlight_color           = "#ffe6f0";        // highlighting text on the help page
 
@@ -99,8 +100,8 @@ $pending_control_color     = "#FFF36C"; // background colour for the series +/- 
 $banner_border_width          = '0';  // (px)  border width for the outside of the banner
 $banner_border_cell_width     = '1';  // (px)  border width for the cells of the banner
 $main_table_border_width      = '0';  // (px)  border width for the outside of the main day/week/month tables    
-$main_table_cell_border_width = '1';  // (px)  border width for the cells of the main day/week/month tables
-$main_cell_height             = '17'; // (px)  height of the cells in the main day/week tables
+$main_table_cell_border_width = '1';  // (px)  vertical border width for the cells of the main day/week/month tables
+$main_cell_height             = '1.5em'; // height of the cells in the main day/week tables
          
     
 // ***** FONTS ************************    

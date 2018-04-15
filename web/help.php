@@ -5,12 +5,12 @@ require "defaultincludes.inc";
 require_once "version.inc";
 
 // Check the user is authorised for this page
-checkAuthorised();
+checkAuthorised(this_page());
 
 $user = getUserName();
 $is_admin = (authGetUserLevel($user) >= $max_level);
 
-print_header($day, $month, $year, $area, isset($room) ? $room : null);
+print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
 
 echo "<h3>" . get_vocab("about_mrbs") . "</h3>\n";
 
@@ -38,15 +38,23 @@ else
   echo "<tr><td>" . get_vocab("servertime") . "</td><td>" .
        utf8_strftime($strftime_format['datetime'], time()) .
        "</td></tr>\n";
-  echo "<tr><td>" . get_vocab("server_software") . "</td><td>" . htmlspecialchars(get_server_software()) . "</td></tr>\n";
+  echo "<tr><td>" . get_vocab("server_software") . "</td><td>" . 
+       htmlspecialchars(get_server_software()) . "</td></tr>\n";
   echo "<tr><td>PHP</td><td>" . phpversion() . "</td></tr>\n";
+  
+  // The PHP extensions loaded ,particularly intl and mbstring, are useful for debugging.
+  $extensions = get_loaded_extensions();
+  asort($extensions);
+  echo "<tr><td>" . get_vocab("extensions") . "</td><td>" . 
+        htmlspecialchars(implode(', ', $extensions)) . "</td></tr>\n";
+        
   echo "</table>\n";
 }
 
 
 echo "<p>\n" . get_vocab("browserlang") .":\n";
 
-echo htmlspecialchars(implode(", ", array_keys(get_language_qualifiers())));
+echo htmlspecialchars(implode(', ', get_browser_langs($HTTP_ACCEPT_LANGUAGE)));
 
 echo "\n</p>\n";
 
@@ -59,5 +67,4 @@ echo "</p>\n";
  
 require_once "site_faq/site_faq" . $faqfilelang . ".html";
 
-output_trailer();
-
+print_footer();
