@@ -96,19 +96,11 @@ function print_report_link($user)
                                'creatormatch' => $user));
                                
   $submit = new ElementInputSubmit();
-  $submit->setAttributes(array('class' => 'link',
-                               'title' => get_vocab('show_my_entries'),
+  $submit->setAttributes(array('title' => get_vocab('show_my_entries'),
                                'value' => $user));
   $form->addElement($submit);
                                
   $form->render();
-}
-
-
-function print_unknown_user()
-{
-  $html = "<a href=\"\">" . get_vocab('unknown_user') . "</a>\n";
-  echo $html;
 }
 
 
@@ -162,15 +154,4 @@ function print_logoff_button($target_url)
   $form->addElement($element);
   
   $form->render();
-}
-
-
-function print_userlist_link()
-{
-  global $auth;
-  
-  if ($auth['type'] == 'db')
-  {
-    echo "<a id=\"user_list_link\" href=\"edit_users.php\">" . get_vocab('user_list') . "</a>\n";
-  }
 }

@@ -70,8 +70,9 @@ use MRBS\Form\FieldSelect;
 // then it will use the fieldname, eg 'coffee_machine'. 
 
 
-require "defaultincludes.inc";
-require_once "mrbs_sql.inc";
+require 'defaultincludes.inc';
+require_once 'mrbs_sql.inc';
+require_once 'functions_mail.inc';
   
 $fields = db()->field_info($tbl_entry);
 $custom_fields = array();
@@ -1091,7 +1092,7 @@ $end_date = get_form_var('end_date', 'string');
 Form::checkToken($post_only=true);
 
 // Check the user is authorised for this page
-checkAuthorised();
+checkAuthorised(this_page());
 
 // Also need to know whether they have admin rights
 $user = getUserName();
@@ -1505,11 +1506,11 @@ $enable_periods ? toPeriodString($start_min, $duration, $dur_units) : toTimeStri
 
 if (!getWritable($create_by, $user, $room_id))
 {
-  showAccessDenied($day, $month, $year, $area, isset($room) ? $room : null);
+  showAccessDenied($view, $year, $month, $day, $area, isset($room) ? $room : null);
   exit;
 }
 
-print_header($day, $month, $year, $area, isset($room) ? $room : null);
+print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
 
 // Get the details of all the enabled rooms
 $rooms = array();
@@ -1715,7 +1716,7 @@ if (($edit_type == "series") && $repeats_allowed)
 }
 
 // Checkbox for no email
-if ($need_to_send_mail &&
+if (need_to_send_mail() &&
     ($mail_settings['allow_no_mail'] || ($is_admin && $mail_settings['allow_admins_no_mail'])))
 {
   $form->addElement(get_fieldset_booking_controls());
@@ -1726,5 +1727,4 @@ $form->addElement(get_fieldset_submit_buttons());
 $form->render();
 
 
-output_trailer();
-
+print_footer();
