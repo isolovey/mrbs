@@ -527,7 +527,7 @@ if ($nusers > 0)
   $user = getUserName();
   $level = authGetUserLevel($user);
   // Check the user is authorised for this page
-  checkAuthorised();
+  checkAuthorised(this_page());
 }
 else 
 // We've just created the table.   Assume the person doing this IS an administrator
@@ -734,7 +734,7 @@ if (isset($Action) && ( ($Action == "Edit") or ($Action == "Add") ))
   $form->render();
   
   // Print footer and exit
-  output_trailer();
+  print_footer();
   exit;
 }
 
@@ -1161,6 +1161,5 @@ if ($ajax)
 }
 else
 {
-  output_trailer();
+  print_footer();
 }
-

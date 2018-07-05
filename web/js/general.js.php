@@ -13,7 +13,141 @@ if ($use_strict)
 
 global $autocomplete_length_breaks;
 
+// This will be a function, defined later ?>
+var arrowClick;  
 
+<?php
+// Function for handling the topping up of the mini-calendars via Ajax.  When the current
+// calendar is nearing the end of the list in the DOM, an Ajax request for a new batch of
+// calendars is sent to the server.  The settings below need to be chosen so that enough
+// new calendars are fetched to keep up with the fastest clicking rate of the user.  Of course,
+// this will depend on the network speed and latency, and in theory one could be more
+// sophisticated and measure the Ajax round-trip time and adjust the settings dynamically,
+// but it's probably not worth it.
+?>
+function Mincals() {
+  this.maxSize = 100;   <?php // Maximum number of mini-calendars to hold in the DOM ?>
+  this.batchSize = 10;  <?php // Number of new mini-calendars to get in each Ajax call ?>
+  this.trigger = 10;    <?php // Get more mini-calendars if we are this close to the end ?>
+  this.data = [];
+}
+
+<?php
+// Build a sorted array of mini-calendars available in the DOM, so that we can top it
+// up by Ajax when we're getting close to the end
+?>
+Mincals.prototype.getAll = function() {
+  var mincals = this;
+  $('.minicalendar').each(function() {
+    mincals.data.push($(this).data('month'));
+  });
+  mincals.data.sort();
+};
+
+<?php // Add a month to our list of available mini-calendars ?>
+Mincals.prototype.add = function(month) {
+  this.data.push(month);
+  this.data.sort();
+};
+
+<?php
+// Add a month to our list of available mini-calendars and, if
+// the list is now bigger than its maximum size, recommend a month
+// for removal, which will be the one at the other end from the
+// inserted month.
+?>
+Mincals.prototype.addAndPrune = function(month) {
+  var remove = null;
+  this.add(month);
+  if (this.data.length > this.maxSize)
+  {
+    if (this.data.indexOf(month) < this.data.length/2)
+    {
+      remove = this.data.pop();
+    }
+    else
+    {
+      remove = this.data.shift();
+    }
+  }
+  return remove;
+};
+
+<?php // Test whether 'month' is in the list ?>
+Mincals.prototype.has = function(month) {
+  return (this.data.indexOf(month) >= 0)
+};
+
+<?php
+// Check to see whether we're nearly running out of mini-calendars and if so top-up
+// the stock by getting some more from the server by Ajax and adding them after 'element'.
+?>
+Mincals.prototype.checkAndTopup = function(args, mincal, element) {
+  <?php // Check to see if we need to top up the of stock mini-calendars ?>
+  var mincals = this,
+      index = this.data.indexOf(mincal),
+      n = this.data.length,
+      reference = null,
+      relative;
+  if (index < this.trigger)
+  {
+    <?php // Get the one before the first ?>
+    reference = this.data[0];
+    relative = -1;
+  }
+  else if ((n-index) <= this.trigger)
+  {
+    <?php // Get the one after the last ?>
+    reference = this.data[n - 1];
+    relative = 1;
+  }
+  if (reference)
+  {
+    <?php // We need more mini-calendars ?>
+    var data = {csrf_token: getCSRFToken(),
+                reference: reference,
+                relative: relative,
+                length: 5,
+                page: args.page + '.php',
+                view: args.view,
+                page_date: args.page_date,
+                area: args.area,
+                room: args.room};
+                
+    $.post('ajax/minicalendar.php',
+           data,
+           function(data) {
+             <?php
+             // Add the new mini-calendars to the DOM and also to our
+             // list of mini-calendars.  But first of all check that we
+             // haven't already got them from another Ajax request that might
+             // have been fired while we were waiting for this one.
+             // When we add a new one we also check whether we need to remove
+             // one from the other end to stop the DOM growing too large.
+             ?>
+             $(data).filter('.minicalendar').each(function() {
+               var thisCalendar = $(this),
+                   month = thisCalendar.data('month'),
+                   remove;
+               if (!mincals.has(month))
+               {
+                 thisCalendar.find('a.arrow').click(arrowClick);
+                 element.after(thisCalendar);
+                 remove = mincals.addAndPrune(month);
+                 if (remove)
+                 {
+                   thisCalendar.parent().find('[data-month="' + remove + '"]').remove();
+                 }
+               }
+             });
+
+           },
+           'html');
+  }
+};
+
+
+<?php
 // Function to determine whether the browser supports the HTML5
 // <datalist> element.
 ?>
@@ -29,85 +163,6 @@ var supportsDatalist = function supportsDatalist() {
            (window.HTMLDataListElement !== undefined);
   };
   
-<?php
-// Set up a cloned <thead> for use with floating headers
-?>
-var createFloatingHeaders = function createFloatingHeaders(tables) {
-    tables.each(function() {
-      var originalHeader = $('thead', this),
-          existingClone = $('.floatingHeader', this).first(),
-          clonedHeader;
-      <?php
-      // We need to know if there's already a clone, because we only need to create one
-      // if there isn't one already (otherwise we'll end up with millions of them).  If
-      // there already is a clone, all we need to do is adjust its width.
-      ?>
-      if (existingClone.length)
-      {
-        clonedHeader = existingClone;
-      }
-      else
-      {
-        clonedHeader = originalHeader.clone();
-        clonedHeader.addClass('floatingHeader');
-      }
-      <?php
-      // Now we need to set the width of the cloned header to equal the width of the original 
-      // header.   But we also need to set the widths of the header cells, because when they are
-      // not connected to the table body the constraints on the width are different and the columns
-      // may not line up.
-      //
-      // When calculating the width of the original cells we use getBoundingClientRect().width to
-      // avoid problems with IE which would otherwise round the widths.   But since
-      // getBoundingClientRect().width gives us the width including padding and borders (but not
-      // margins) we need to set the box-sizing model accordingly when setting the width.
-      //
-      // Note that these calculations assume border-collapse: separate.   If we were using 
-      // collapsed borders then we'd have to watch out for the fact that the borders are shared
-      // and then subtract half the border width (possibly on the inner cells only?).
-      ?>
-      clonedHeader
-          .css('width', originalHeader.width())
-          .find('th')
-              .css('box-sizing', 'border-box')
-              .css('width', function (i) {
-                  return originalHeader.find('th').get(i).getBoundingClientRect().width;
-                });
-      if (!existingClone.length)
-      {
-        clonedHeader.insertAfter(originalHeader);
-      }
-    });
-  };
-  
-
-<?php
-// Make the floating header visible or hidden depending on the vertical scroll
-// position.  We also need to take account of horizontal scroll
-?>
-var updateTableHeaders = function updateTableHeaders(tables) {
-    tables.each(function() {
-
-        var el             = $(this),
-            offset         = el.offset(),
-            scrollTop      = $(window).scrollTop(),
-            floatingHeader = $(".floatingHeader", this);
-            
-        if ((scrollTop > offset.top) && (scrollTop < offset.top + el.height()))
-        {
-          floatingHeader.show();
-        } 
-        else
-        {
-          floatingHeader.hide();
-        }
-        <?php 
-        // Also need to adjust the horizontal position as the element
-        // has a fixed position
-        ?>
-        floatingHeader.css('left', offset.left - $(window).scrollLeft());
-    });
-  };
   
 <?php
 // =================================================================================
@@ -137,7 +192,7 @@ init = function(args) {
             ((t - recordActivity.lastRecorded) > (<?php echo $auth["session_php"]["inactivity_expire_time"]?> - 1)))
         {
           recordActivity.lastRecorded = t;
-          $.post('record_activity_ajax.php', {ajax: 1, activity: 1}, function() {
+          $.post('ajax/record_activity.php', {ajax: 1, activity: 1}, function() {
             });
         }
       };
@@ -161,7 +216,7 @@ init = function(args) {
       value: '1'
     }).appendTo('#header_search');
     
-  $('#user_list_link').each(function() {
+  $('header a[href^="edit_users.php"]').each(function() {
       var href = $(this).attr('href');
       href += (href.indexOf('?') < 0) ? '?' : '&';
       href += 'datatable=1';
@@ -342,23 +397,38 @@ init = function(args) {
                });
     }
   });
-
-
-  var floatingTables = $('table#day_main, table#week_main');
-
-  createFloatingHeaders(floatingTables);
   
   $(window)
     <?php // Make resizing smoother by not redoing headers on every resize event ?>
     .resize(throttle(function() {
-        createFloatingHeaders(floatingTables);
-        updateTableHeaders(floatingTables);
         labels.width('auto');
         labels.width(getMaxWidth(labels));
-      }, 100))
-    .scroll(function() {
-        updateTableHeaders(floatingTables);
-      })
-    .trigger('scroll');
-    
+      }, 100));
+  
+  <?php // Set up Ajax loading of new mini-calendars ?>
+  var mincals = new Mincals();
+  mincals.getAll();
+  
+  <?php
+  // When the Prev and Next arrows on the mini-calendars are clicked, show the prev/next
+  // calendar if it's there in the DOM and hide the current one.  If it's not there then
+  // we just have to follow the link to the server, which will be slower.  (TO DO - get
+  // more calendars via Ajax as necessary).
+  ?>
+  arrowClick = function(event) {
+    var href = $(this).attr('href'),
+        mincal = getParameterByName('mincal', href),
+        nextcal = $('.minicalendar[data-month="' + mincal + '"]'),
+        refMincal = null,
+        neededPrev = false;
+    if (nextcal.length)
+    {
+      event.preventDefault();
+      $(this).closest('.minicalendar').hide();
+      nextcal.show();
+      mincals.checkAndTopup(args, mincal, nextcal);
+    }
+  };
+
+  $('.minicalendar a.arrow').click(arrowClick);
 };

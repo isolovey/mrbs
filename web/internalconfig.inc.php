@@ -129,6 +129,19 @@ if (isset($db_nopersist))
   trigger_error($message, E_USER_NOTICE);
 }
 
+// Variables in a changed format in versions of MRBS > 1.7.1
+if (!empty($override_locale))
+{
+  $new_override_locale = System::getBCPlocale($override_locale);
+  if (strtolower($override_locale) != strtolower($new_override_locale))
+  {
+    $message = 'The config variable $override_locale should now be in BCP 47 format. ' .
+               "Please change '$override_locale' to '$new_override_locale'.";
+    trigger_error($message, E_USER_NOTICE);
+    $override_locale = $new_override_locale;
+  }
+}
+
 
 /********************************************************
  * Checking
@@ -462,7 +475,7 @@ $area_defaults['max_per_future_enabled']   = $max_per_interval_area_enabled['fut
 $area_defaults['max_per_future']           = $max_per_interval_area['future'];
 
 
-// We send Ajax requests to del_entry_ajax.php with data as an array of ids.
+// We send Ajax requests to ajax/del_entry.php with data as an array of ids.
 // In order to stop the POST request getting too large and triggering a 406
 // error, we split the requests into batches with a maximum number of ids
 // in the array defined below.
