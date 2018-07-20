@@ -52,7 +52,7 @@ function generate_area_change_form($enabled_areas, $disabled_areas)
   
   $form = new Form();
   
-  $attributes = array('id'     => 'areaChangeForm',
+  $attributes = array('class'  => 'areaChangeForm',
                       'action' => this_page(),
                       'method' => 'post');
                       
@@ -240,7 +240,7 @@ function generate_new_room_form()
 Form::checkToken($post_only=true);
 
 // Check the user is authorised for this page
-checkAuthorised();
+checkAuthorised(this_page());
 
 // Also need to know whether they have admin rights
 $user = getUserName();
@@ -250,7 +250,7 @@ $is_admin = (authGetUserLevel($user) >= $required_level);
 // Get non-standard form variables
 $error = get_form_var('error', 'string');
 
-print_header($day, $month, $year, isset($area) ? $area : null, isset($room) ? $room : null);
+print_header($view, $year, $month, $day, isset($area) ? $area : null, isset($room) ? $room : null);
 
 // Get the details we need for this area
 if (isset($area))
@@ -532,5 +532,4 @@ if ($is_admin || !empty($enabled_areas))
   echo "</div>\n";
 }
 
-output_trailer();
-
+print_footer();
