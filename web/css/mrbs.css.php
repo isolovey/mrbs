@@ -55,11 +55,17 @@ input, textarea {
 // In order to prevent the display shifting about during the conversion process we set
 // the widths of both to be the same.
 ?>
-input.date, .js input[type="date"] {
+input.date,
+.js input[type="date"],
+input.flatpickr-input {
   width: 6.5em;
 }
 
-.js input[type="date"] {
+input.flatpickr-input {
+  text-align: center;
+}
+
+.js input:not(.flatpickr-input)[type="date"] {
   visibility: hidden;
 }
 
@@ -73,15 +79,77 @@ button.image {
   padding: 0;
 }
 
-div.contents, div.trailer {
+.contents, .banner {
+  padding: 0 1.5rem;
+}
+
+.contents {
   float: left;
   width: 100%;
   box-sizing: border-box;
-  padding: 0 2em;
+  padding-bottom: 3rem;
 }
 
-h1 {font-size: x-large; clear: both}
-h2 {font-size: large; clear: both}
+h1 {
+  font-size: x-large;
+  clear: both;
+}
+
+h2 {
+  font-size: large;
+  clear: both;
+}
+
+.minicalendars {
+  margin-right: 2em;
+  padding-top: 0.8rem; <?php // same as margin-top on nav.main_calendar ?>
+}
+
+.minicalendars.formed {
+  display: none;
+}
+
+@media screen and (min-width: 80rem) {
+  .minicalendars.formed {
+    display: block;
+  }
+}
+
+<?php
+// Make the inline minicalendars smaller than the pop-up calendars.
+// The default width is 39px
+?>
+.flatpickr-calendar.inline {
+  width: calc(7 * 25px);
+  font-size: 85%;
+  margin-bottom: 1rem;
+}
+
+.flatpickr-calendar.inline .dayContainer {
+  width: calc(7 * 25px);
+  min-width: calc(7 * 25px);
+  max-width: calc(7 * 25px);
+}
+
+.flatpickr-calendar.inline .flatpickr-days {
+  width: calc(7 * 25px);
+}
+
+.flatpickr-calendar.inline .flatpickr-day {
+  max-width: 25px;
+  height: 25px;
+  line-height: 25px;
+}
+
+.index .contents {
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.view_container {
+  -ms-flex-positive: 1;
+  flex-grow: 1;
+}
 
 img {border: 0}
 
@@ -89,8 +157,14 @@ a:link    {color: <?php echo $anchor_link_color ?>;    text-decoration: none; fo
 a:visited {color: <?php echo $anchor_visited_color ?>; text-decoration: none; font-weight: bold}
 a:hover   {color: <?php echo $anchor_hover_color ?>;   text-decoration: underline; font-weight: bold} 
 
-tr.even_row td.new {background-color: <?php echo $row_even_color ?>}
-tr.odd_row td.new {background-color: <?php echo $row_odd_color ?>}
+tr:nth-child(odd) td.new {
+  background-color: <?php echo $row_odd_color ?>;
+}
+
+tr:nth-child(even) td.new {
+  background-color: <?php echo $row_even_color ?>;
+}
+
 
 td, th {vertical-align: top}
 
@@ -109,8 +183,8 @@ fieldset fieldset {position: relative; clear: left; width: 100%; padding: 0; bor
 fieldset fieldset legend {font-size: 0}        /* for IE: even if there is no legend text, IE allocates space  */
 
 
-label::after,
-.trailer_label a::after,
+label:not(.link)::after,
+label.link a::after,
 .list td:first-child::after {
   content: ':';
 }
@@ -119,8 +193,8 @@ label:empty::after, .group label::after {
   visibility: hidden;
 }
 
-[lang="fr"] label::after,
-[lang="fr"] .trailer_label a::after,
+[lang="fr"] label:not(.link)::after,
+[lang="fr"] label.link a::after,
 [lang="fr"] .list td:first-child::after  {
   content: '\0000a0:';  <?php // &nbsp; before the colon ?>
 }
@@ -228,7 +302,11 @@ table.display span.normal {
   display: inline;
 }
 
-select.room_area_select {margin-right: 0.5em}
+select.room_area_select,
+nav.location .select2-container {
+  margin: 0 0.5em;
+}
+
 
 <?php
 // Don't display anything with a class of js_none (used for example for hiding Submit
@@ -236,6 +314,92 @@ select.room_area_select {margin-right: 0.5em}
 ?>
 .js .js_none {display: none}
 .js .js_hidden {visibility: hidden}
+
+h2.date, span.timezone {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 0.1em;
+}
+
+span.timezone {
+  opacity: 0.8;
+  font-size: smaller;
+}
+
+nav.main_calendar {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 0.8rem;  <?php // same as padding-top on minicalendars ?>
+}
+
+nav.main_calendar > nav {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex: 1;
+  flex: 1;
+  -ms-flex-pack: center;
+  justify-content: center;
+}
+
+nav.main_calendar > nav:first-child {
+  -ms-flex-pack: start;
+  justify-content: flex-start;
+}
+
+nav.main_calendar > nav:last-child {
+  -ms-flex-pack: end;
+  justify-content: flex-end;
+}
+
+nav.view div.container {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+nav.view a, nav.arrow a {
+  -webkit-appearance: button;
+  -moz-appearance: button;
+  appearance: button;
+  background-color: buttonface;
+  cursor: pointer;
+  line-height: 1.8em;
+  font-weight: normal;
+  text-align: center;
+}
+
+nav.view a {
+  padding: 0.2em 0.5em;
+}
+
+nav.arrow a {
+  padding: 0.2em 1em;
+}
+
+nav a.selected,
+nav.view a:hover,
+nav.view a:focus,
+nav.arrow a:hover,
+nav.arrow a:focus {
+  background-color: <?php echo $banner_back_color ?>;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+
+nav a.prev::before {
+  content: '\00276e';  /* HEAVY LEFT-POINTING ANGLE QUOTATION MARK ORNAMENT */
+}
+
+nav a.next::after {
+  content: '\00276f';  /* HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT */
+}
+
 
 /* ------------ ADMIN.PHP ---------------------------*/
 <?php
@@ -279,14 +443,17 @@ div#div_custom_html {
   margin-right: <?php echo $admin_form_gap ?>em;
 }
 
-#areaChangeForm div {
+.areaChangeForm div {
   float: left;
 }
   
-#roomChangeForm select, #areaChangeForm select {display: block; float: left; margin: -0.1em 1.5em 0 0}
-#roomChangeForm input, #areaChangeForm input {float: left; margin: -0.2em 0.5em 0 0}
+.roomChangeForm select, .areaChangeForm select {
+  font-size: larger;
+}
 
-#roomChangeForm input.button, #areaChangeForm button.image {
+.roomChangeForm input, .areaChangeForm input {float: left; margin: -0.2em 0.5em 0 0}
+
+.roomChangeForm input.button, .areaChangeForm button.image {
   display: block;
   float: left;
   margin: 0 0.7em
@@ -299,7 +466,7 @@ div.body_columns {max-width: 80%}
 .body_columns .admin_table th:first-child {border-left-color: <?php echo $admin_table_border_color ?>}
 
 
-/* ------------ DAY/WEEK/MONTH.PHP ------------------*/
+/* ------------ INDEX.PHP ------------------*/
 
 <?php
 $column_hidden_width  = 0;       // (%) width of the column for hidden days (set to 0 for no column at all; 1 for a narrow column);
@@ -317,17 +484,6 @@ if ($n_hidden_days < 7)                                  // (avoid the div by ze
 $column_month = number_format($column_month, 1, '.', '');  // (%) tidy the number up and make sure it's valid for CSS (no commas)
 
 ?>
-div#dwm_header {width: 100%; float: left; margin-top: 1.0em; margin-bottom: 0.5em}
-div#dwm_areas, div#dwm_rooms  {float: left; margin-right: 2.0em}
-#dwm_header h3 {font-size: small; font-weight: normal; text-decoration: underline; 
-    margin-top: 0; margin-bottom: 0.5em; padding-bottom: 0}
-#dwm_header ul {list-style-type: none; padding-left: 0; margin-left: 0; margin-top: 0}
-#dwm_header li {padding-left: 0; margin-left: 0}
-
-div#dwm {margin-bottom: 0.5em}
-#dwm {text-align: center}
-#dwm h2 {margin-bottom: 0}
-#dwm div.timezone {opacity: 0.8}
 
 .date_nav {
   float: left;
@@ -368,47 +524,233 @@ div#dwm {margin-bottom: 0.5em}
 table.dwm_main {
   float: left;
   clear: both; 
-  width: 100%; 
+  width: 100%;
+  margin: 1em 0;
   border-spacing: 0;
   border-collapse: separate;
   border-color: <?php echo $main_table_border_color ?>;
   border-width: <?php echo $main_table_border_width ?>px;
-  border-style: solid
+  border-style: solid;
+  border-radius: 5px;
 }
 
-.dwm_main td {padding: 0;
-    border-top:  <?php echo $main_table_cell_border_width ?>px solid <?php echo $main_table_body_h_border_color ?>;
-    border-left: <?php echo $main_table_cell_border_width ?>px solid <?php echo $main_table_body_v_border_color ?>;
-    border-bottom: 0;
-    border-right: 0}
-.dwm_main td:first-child {border-left: 0}
+.dwm_main th, .dwm_main td {
+  min-height: <?php echo $main_cell_height ?>;
+  line-height: <?php echo $main_cell_height ?>;
+}
+
+.dwm_main td {
+  position: relative;
+  padding: 0;
+  border-left: <?php echo $main_table_cell_border_width ?>px solid <?php echo $main_table_body_v_border_color ?>;
+  border-bottom: 0;
+  border-right: 0;
+}
+
+.series a::before {
+  content: '\0021bb';  /* CLOCKWISE OPEN CIRCLE ARROW */
+  margin-right: 0.5em;
+}
+
+.awaiting_approval a::before {
+  content: '?';
+  margin-right: 0.5em;
+}
+
+.awaiting_approval.series a:before {
+  content: '?\002009\0021bb';  /* THIN SPACE, CLOCKWISE OPEN CIRCLE ARROW */
+}
+
+.awaiting_approval {
+  opacity: 0.6
+}
+
+.private {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.tentative {
+  opacity: 0.6;
+}
+
+.tentative a {
+  font-weight: normal;
+}
+
+
 <?php
-// Note that it is important to have zero padding-left and padding-top on the th cells and the celldiv divs.
+// Note that it is important to have zero padding-left and padding-top on the th and td cells.
 // These elements are used to calculate the offset top and left of the position of bookings in
 // the grid when using resizable bookings.   jQuery.offset() measures to the content.  If you
 // need padding put it on the contained element.
 ?>
-.dwm_main th {font-size: small; font-weight: normal; vertical-align: top; padding: 0;
-    color: <?php echo $header_font_color ?>; 
-    background-color: <?php echo $header_back_color ?>;
-    border-left: <?php echo $main_table_cell_border_width ?>px solid <?php echo $main_table_header_border_color ?>}
-.dwm_main th.first_last, .dwm_main th span {padding: 0 2px}
-.dwm_main th:first-child {border-left: 0}
+.dwm_main th {
+  font-size: small;
+  font-weight: normal;
+  vertical-align: top;
+  padding: 0.2em;
+  color: <?php echo standard_font_color ?>; 
+  background-color: #ffffff;
+  border-left: <?php echo $main_table_cell_border_width ?>px solid <?php echo $main_table_header_border_color ?>;
+}
 
-.dwm_main a {
+.dwm_main tr:first-child th {
+  border-top: 0 solid <?php echo $main_table_border_color ?>;
+  border-bottom: 0 solid <?php echo $main_table_border_color ?>;
+}
+
+.dwm_main > *:last-child tr:last-child th,
+.dwm_main > *:last-child tr:last-child td {
+  border-bottom: 0 solid <?php echo $main_table_border_color ?>;
+}
+
+.dwm_main > *:last-child tr:last-child th {
+  border-top: 0 solid <?php echo $main_table_border_color ?>;
+}
+
+.dwm_main th:first-child,
+.dwm_main td:first-child {
+  border-left: 0 solid <?php echo $main_table_border_color ?>;
+}
+
+.dwm_main th:last-child,
+.dwm_main td:last-child {
+  border-right: 0 solid <?php echo $main_table_border_color ?>;
+}
+
+.dwm_main tr:first-child th:first-child {
+  border-top-left-radius: 5px;
+}
+
+.dwm_main tr:first-child th:last-child {
+  border-top-right-radius: 5px;
+}
+
+.dwm_main > *:last-child tr:last-child th:first-child,
+.dwm_main > *:last-child tr:last-child td:first-child {
+  border-bottom-left-radius: 5px;
+}
+
+.dwm_main > *:last-child tr:last-child th:last-child,
+.dwm_main > *:last-child tr:last-child td:last-child {
+  border-bottom-right-radius: 5px;
+}
+
+
+.dwm_main a, 
+.dwm_main .booked span.saving {
   display: block;
+  height: 100%;
+  width: 100%;
   min-height: inherit;
   word-break: break-all;
   word-break: break-word;  /* Better for those browsers, eg webkit, that support it */
   hyphens: auto;
 }
 
+.dwm_main .booked a,
+.dwm_main .booking,
+.dwm_main .booked span.saving {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  overflow: hidden;
+}
 
+.dwm_main.times-along-top .booked.multiply a {
+  max-height: <?php echo $main_cell_height ?>;
+  box-sizing: content-box;
+}
 
-.dwm_main tbody a {padding: 0 2px}
-.dwm_main th a:link    {color: <?php echo $anchor_link_color_header ?>;    text-decoration: none; font-weight: normal}
-.dwm_main th a:visited {color: <?php echo $anchor_visited_color_header ?>; text-decoration: none; font-weight: normal}
-.dwm_main th a:hover   {color: <?php echo $anchor_hover_color_header ?>;   text-decoration:underline; font-weight: normal}
+.dwm_main .booked.multiply a,
+.dwm_main .booked.multiply .booking {
+  position: relative;
+}
+
+<?php 
+// Catch IE10 and IE11 only
+// IE10 and IE11 don't support position: relative on the <td> so we have to do it on
+// the wrapper.  The downside is that when resizing to make the booking larger the
+// table has to expand to accommodate the relative div.
+?>
+@media all and (-ms-high-contrast: none), all and (-ms-high-contrast: active)
+{
+  .dwm_main .booking {
+    position: relative;
+  }
+}
+
+.dwm_main .booking {
+  width: 100%;
+  height: 100%;
+  min-height: <?php echo $main_cell_height ?>;
+}
+
+.dwm_main .booked a {
+  box-sizing: border-box;
+  border-bottom: 1px solid <?php echo $main_table_body_v_border_color ?>;
+}
+
+.dwm_main .booked a.saving {
+  opacity: 0.4;
+  color: transparent;
+  pointer-events: none;
+}
+
+.dwm_main .booked span.saving {
+  font-weight: bold;
+}
+
+.dwm_main .booked span.saving::after {
+  content: '\002026'; <?php // HORIZONTAL ELLIPSIS ?>
+}
+
+.dwm_main .booked span.saving,
+.dwm_main .booked span.saving::after {
+  z-index: 60;
+  animation-name: pulsate;
+  animation-duration: 2s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes pulsate {
+  from {
+    opacity: 0;
+  }
+  
+  50% {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.dwm_main tbody a {
+  padding: 0.2em;
+}
+
+.dwm_main th a {
+  text-decoration: none;
+  font-weight: normal;
+}
+
+.dwm_main th a:link {
+  color: <?php echo $anchor_link_color_header ?>;
+}
+
+.dwm_main th a:visited {
+  color: <?php echo $anchor_visited_color_header ?>;
+}
+
+.dwm_main th a:hover {
+  color: <?php echo $anchor_hover_color_header ?>;
+  text-decoration:underline;
+}
 
 .dwm_main#week_main th.first_last {vertical-align: bottom}
 .dwm_main td.invalid {background-color: <?php echo $main_table_slot_invalid_color ?>}
@@ -418,10 +760,29 @@ table.dwm_main {
 .dwm_main#month_main td.invalid {background-color: <?php echo $main_table_month_invalid_color ?>}
 .dwm_main#month_main a {height: 100%; width: 100%; padding: 0 2px 0 2px}
 
-td.new a, a.new_booking {display: block; font-size: medium; text-align: center}
-td.new img, .new_booking img {margin: auto; padding: 4px 0 2px 0}
-img.repeat_symbol {float: right; padding: 3px}
-.dwm_main#month_main img.repeat_symbol {padding: 2px}
+td.new a, a.new_booking {
+  font-size: medium;
+  text-align: center;
+}
+
+td.new img, .new_booking img {
+  margin: auto;
+  padding: 4px 0 2px 0;
+}
+
+<?php
+// We use outline instead of border because jQuery UI Resizable has problems with border-box.
+// Note that on Chrome (at least up until Chrome 68.0.3416.0) outline position and width can
+// be 1px off when the browser zoom level is not 100%.
+?>
+.resizable-helper {
+  outline: 2px solid #666666;
+  outline-offset: -2px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100 !important;
+}
 
 
 <?php
@@ -441,7 +802,7 @@ img.repeat_symbol {float: right; padding: 3px}
 div.cell_container {position: relative; float: left; width: 100%;        /* the containing div for a.new_booking */ 
 <?php echo ($month_cell_scrolling ? 'height:' : 'min-height:') ?> 100px} /* NOTE:  if you change the value of (min-)height, make sure you */
                                                                          /* also change the value of height in mrbs-ielte6.css */
-.month a.new_booking {position: absolute; top: 0; left: 0; z-index: 10}  /* needs to be above the base, but below the date (monthday) */
+#month_main a.new_booking {position: absolute; top: 0; left: 0; z-index: 10}  /* needs to be above the base, but below the date (monthday) */
        
 div.cell_header {position: relative; width: 100%; z-index: 20;         /* needs to be above the new booking anchor */
      min-height: 20%; height: 20%; max-height: 20%; overflow: hidden}
@@ -503,13 +864,14 @@ foreach ($color_types as $type => $col)
   background-color: <?php echo $main_table_slot_private_type_color;?>;
 }
 
-/* For floating header in the day and week views */
-
-.floatingHeader {
-  position: fixed;
+.dwm_main thead th {
+  position: -webkit-sticky;
+  position: -moz-sticky;
+  position: -ms-sticky;
+  position: -o-sticky;
+  position: sticky;
+  z-index: 200;
   top: 0;
-  z-index: 2000;
-  display: none;
 }
 
 .dwm_main#month_main th.hidden_day     
@@ -518,47 +880,109 @@ foreach ($color_types as $type => $col)
       echo (empty($column_hidden_width) ? " display: none" : ""); // if the width is set to zero, then don't display anything at all
     ?>
     }
-td.hidden_day     {background-color: <?php echo $column_hidden_color ?>; /* hidden columns (eg weekends) in the week and month views */
-    font-size: medium; font-weight: bold;
-    border-top: <?php echo $main_table_cell_border_width ?>px solid <?php echo $column_hidden_color ?>;
-    <?php 
-      echo (empty($column_hidden_width) ? " display: none" : ""); // if the width is set to zero, then don't display anything at all
-    ?>
-    }
-tr.row_highlight td.new {background-color: <?php echo $row_highlight_color ?>} /* used for highlighting a row */
-.dwm_main td.row_labels     {background-color: <?php echo $main_table_labels_back_color ?>; white-space: nowrap}    /* used for the row labels column */
-.row_labels a:link    {color: <?php echo $anchor_link_color_header ?>;    text-decoration: none; font-weight: normal}
-.row_labels a:visited {color: <?php echo $anchor_visited_color_header ?>; text-decoration: none; font-weight: normal}
-.row_labels a:hover   {color: <?php echo $anchor_hover_color_header ?>;   text-decoration: underline; font-weight: normal}
+    
+td.hidden_day {
+  background-color: <?php echo $column_hidden_color ?>; /* hidden columns (eg weekends) in the week and month views */
+  font-size: medium;
+  font-weight: bold;
+  <?php 
+    echo (empty($column_hidden_width) ? " display: none" : ""); // if the width is set to zero, then don't display anything at all
+  ?>
+}
+
+tr.row_highlight td.new {
+  background-color: <?php echo $row_highlight_color ?>;
+}
+
+td.row_labels {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+tr:nth-child(odd) td.row_labels {
+  background-color: <?php echo $row_odd_color ?>;
+}
+
+tr:nth-child(even) td.row_labels {
+  background-color: <?php echo $row_even_color ?>;
+}
+
+.row_labels a {
+  display: inline;
+  text-decoration: none;
+  font-weight: normal
+}
+
+.row_labels a:link {
+  color: <?php echo $anchor_link_color_header ?>;
+}
+
+.row_labels a:visited {
+  color: <?php echo $anchor_visited_color_header ?>;
+}
+
+.row_labels a:hover {
+  color: <?php echo $anchor_hover_color_header ?>;
+  text-decoration: underline;
+}
 
 <?php
 // HIGHLIGHTING:  Set styles for the highlighted cells under the cursor (the time/period cell and the current cell)
 ?>
-.dwm_main td:hover.new, .dwm_main td.new_hover {background-color: <?php echo $row_highlight_color ?>}
-.dwm_main tr:hover td.row_labels, .dwm_main td.row_labels_hover {background-color: <?php echo $row_highlight_color ?>; color: <?php echo $standard_font_color ?>}
-.dwm_main#month_main td:hover.valid, .dwm_main#month_main td.valid_hover {background-color: <?php echo $row_highlight_color ?>}
-<?php
-// would be nicer to use color: inherit in the four rules below, but inherit is not supported by IE until IE8.   
-// inherit would mean that (1) you didn't have to specify the colour again and (2) you needn't use the tbody selector to
-// stop the header links changing colour.
-?>
+.dwm_main td:hover.new, .dwm_main td.new_hover {
+  background-color: <?php echo $row_highlight_color ?>;
+}
 
-.dwm_main tbody tr:hover a:link,    td.row_labels_hover a:link    {color: <?php echo $anchor_link_color ?>}
-.dwm_main tbody tr:hover a:visited, td.row_labels_hover a:visited {color: <?php echo $anchor_link_color ?>}
+.dwm_main tr:hover td.row_labels {
+  background-color: <?php echo $row_highlight_color ?>;
+}
+
+.dwm_main tr:hover td.row_labels a {
+  color: #ffffff;
+}
+
+.dwm_main#month_main td:hover.valid,
+.dwm_main#month_main td.valid_hover {
+  background-color: <?php echo $row_highlight_color ?>;
+}
+
 <?php // Disable the highlighting when we're in resize mode ?>
-.resizing .dwm_main tr.even_row td:hover.new {background-color: <?php echo $row_even_color ?>}
-.resizing .dwm_main tr.odd_row td:hover.new {background-color: <?php echo $row_odd_color ?>}
-.resizing .dwm_main tr:hover td.row_labels {background-color: <?php echo $main_table_labels_back_color ?>; color: <?php echo $anchor_link_color_header ?>}
-.resizing .row_labels a:hover {text-decoration: none}
-.resizing .dwm_main tbody tr:hover td.row_labels a:link {color: <?php echo $anchor_link_color_header ?>}
-.resizing .dwm_main tbody tr:hover td.row_labels a:visited {color: <?php echo $anchor_link_color_header ?>}
-.resizing .dwm_main tr td.row_labels.selected {background-color: <?php echo $row_highlight_color ?>}
-.resizing .dwm_main tr:hover td.row_labels.selected,
-.resizing .dwm_main tr td.row_labels.selected a:link,
-.resizing .dwm_main tr td.row_labels.selected a:visited {color: <?php echo $standard_font_color ?>}
+.dwm_main.resizing tr:nth-child(odd) td:hover.new {
+  background-color: <?php echo $row_odd_color ?>;
+}
+
+.dwm_main.resizing tr:nth-child(even) td:hover.new {
+  background-color: <?php echo $row_even_color ?>;
+}
+
+.dwm_main.resizing tr:hover td.row_labels {
+  background-color: <?php echo $main_table_labels_back_color ?>;
+  color: <?php echo $anchor_link_color_header ?>;
+}
+
+.resizing .row_labels a:hover {
+  text-decoration: none;
+}
+
+.dwm_main.resizing tbody tr:hover td.row_labels a:link {
+  color: <?php echo $anchor_link_color_header ?>;
+}
+
+.dwm_main.resizing tbody tr:hover td.row_labels a:visited {
+  color: <?php echo $anchor_link_color_header ?>;
+}
+
+.dwm_main.resizing tr td.row_labels.selected {
+  background-color: <?php echo $row_highlight_color ?>;
+}
+
+.dwm_main.resizing tr:hover td.row_labels.selected,
+.dwm_main.resizing tr td.row_labels.selected a:link,
+.dwm_main.resizing tr td.row_labels.selected a:visited {
+  color: #ffffff;
+}
 
 
-.dwm_main .ui-resizable-handle {z-index: 1000}
 .dwm_main .ui-resizable-n {top: -1px}
 .dwm_main .ui-resizable-e {right: -1px}
 .dwm_main .ui-resizable-s {bottom: -1px}
@@ -568,111 +992,6 @@ tr.row_highlight td.new {background-color: <?php echo $row_highlight_color ?>} /
 .dwm_main .ui-resizable-ne {top: -2px; right: -1px}
 .dwm_main .ui-resizable-nw {top: -2px; left: -1px}
 
-<?php
-// We make the position property !important because otherwise IE seems to give it an inline style
-// of position: relative for some unknown reason
-?>
-div.outline {
-  position: absolute !important;
-  border: 1px dotted <?php echo $header_back_color ?>;
-  z-index: 700;
-}
-
-<?php
-
-/* SLOTS CLASSES
-
-The next section generates the slot classes (i.e. slots1, slots2, etc.).   We need
-enough of them so that they cover a booking spanning all the slots.
-
-These classes are used to control the styling of the main div in a cell in the main display table.
-By editing $clipped the styling can be set to be either 
-(1) CLIPPED.
-The cells are all a standard height and any content that does not fit in the cell is clipped.
-The height is a multiple of the height for a single cell, defined by $main_cell_height.   For 
-example if you define the main cell height to be 1.1em high, then a booking that is only one slot long
-will be 1.1 em high and a booking two slots long will be 2.2em high, etc.
-(2) NOT CLIPPED
-The cells expand to fit the content.
-
-(Although the style information could be put in an inline style declaration, this would mean that every
-cell in the display would carry the extra size of the style declaration, whereas the classes here mean
-that we only need the style declaration for each row.) 
-
-In the classes below
-- slotsN is the class for displaying a booking N slots long
-- height is the height of N slots (ie N * $main_cell_height)
-- you need to specify max-height so that clipping works correctly in Firefox
-- you need to specify height so that clipping works correctly in IE and also
-  to force min-height to work correctly in IE
-- you need to specify min-height to force the box to be the min-height in
-  IE (Firefox works OK without min-height)
-
-*/
-
-
-// work out how many classes we'll need.   If we're transposing the table then we'll only need one, since all
-// cells are the same height (it's the width that varies, controlled by the colspan attribute).   For a normal
-// table we'll need at least as many as we've got slots, since a booking could span as many as all the slots
-// (in this case controlled by a rowspan).
-$classes_required = ($times_along_top) ? 1 : $max_slots;
-for ($i=1; $i<=$classes_required; $i++) 
-{
-  $div_height = $main_cell_height * $i;
-  $div_height = $div_height + (($i-1)*$main_table_cell_border_width);
-  $div_height = (int) $div_height;    // Make absolutely sure it's an int to avoid generating invalid CSS
-  
-  $rule = "div.slots" . $i . " {min-height: " . $div_height . "px";
-  if ($clipped)
-  {
-    $rule .= "; max-height: " . $div_height . "px"; 
-    $rule .= "; height: "     . $div_height . "px";
-  }
-  $rule .= "}";
-  echo $rule . "\n";
-}
-
-?>
-div.celldiv {max-width: 100%; overflow: hidden; margin: 0; padding: 0}
-.row_labels div.celldiv {overflow: visible}  /* we want to see the content in the row label columns */
-<?php
-
-
-// Multiple bookings.  These rules control the styling of the cells and controls when there is more than
-// one booking in a time slot.
-?>
-div.mini, div.maxi {position: relative}     /* establish a relative position for the absolute position to follow */
-div.multiple_control {
-    display: none;       /* will be over-ridden by JavaScript if enabled */
-    position: absolute; z-index: 20;
-    width: <?php echo $main_cell_height ?>px;
-    text-align: center;
-    padding: 0;
-    border-right: <?php echo $main_table_cell_border_width . "px solid " . $main_table_body_v_border_color ?>;
-    background-color: <?php echo $multiple_control_color ?>}
-.mini div.multiple_control {                /* heights for maxi are set using in-line styles */
-    height: <?php echo $main_cell_height ?>px;
-    max-height: <?php echo $main_cell_height ?>px;
-    min-height: <?php echo $main_cell_height ?>px}
-div:hover.multiple_control {cursor: pointer}
-.multiple_booking table {height: 100%; width: 100%; border-spacing: 0; border-collapse: collapse}
-.multiple_booking td {border-left: 0}
-
-/* used for toggling multiple bookings from mini to maxi size */
-.maximized div.mini {display: none}
-.maximized div.maxi {display: block}
-.minimized div.mini {display: block}
-.minimized div.maxi {display: none}
-
-<?php
-// Over-rides for multiple bookings.  If JavaScript is enabled then we want to see the JavaScript controls.
-// And we will need to extend the padding so that the controls don't overwrite the booking text
-?>
-
-.js div.multiple_control {
-    display: block;   /* if JavaScript is enabled then we want to see the JavaScript controls */
-  }
-.js .multiple_booking .maxi a {padding-left: <?php echo $main_cell_height + $main_table_cell_border_width + 2 ?>px}
 
 div.div_select {
   position: absolute;
@@ -684,21 +1003,6 @@ div.div_select {
 div.div_select.outside {
   background-color: transparent;
 }   
-
-/* booking privacy status */
-.private {
-  opacity: 0.6;
-  font-style: italic;
-}
-
-/* booking approval status */
-.awaiting_approval {opacity: 0.6}
-.awaiting_approval a::before {content: "? "}
-
-/* booking confirmation status */
-.tentative {opacity: 0.6}
-.tentative a {font-weight: normal}
-
 
 
 /* ------------ DEL.PHP -----------------------------*/
@@ -836,7 +1140,7 @@ div#div_custom_html {
   margin-bottom: 0.5em;
 }
 
-.standard input[type="text"]:not(.date),
+.standard input[type="text"]:not(.date):not(.flatpickr-input),
 .standard input[type="email"],
 .standard input[type="password"],
 .standard input[type="search"],
@@ -975,8 +1279,12 @@ form#add_new_user {margin-left: 1em}
 /* ------------ FUNCTIONS.INC -------------------*/
 
 .banner {
-  height: 100%;
-  width: 100%;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: row;
+  flex-direction: row;
+  -ms-flex-pack: start;
+  justify-content: flex-start;
   background-color: <?php echo $banner_back_color ?>;
   color: <?php echo $banner_font_color ?>;
   border-color: <?php echo $banner_border_color ?>;
@@ -984,56 +1292,36 @@ form#add_new_user {margin-left: 1em}
   border-style: solid;
 }
 
-.banner.simple, .banner.simple nav {
-  height: auto;
+.banner .logo {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: start;
+  justify-content: flex-start;
+}
+
+.banner .logo img {
+  margin: 1em 2em 1em 0;
 }
 
 .banner .company {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: center;
+  justify-content: center;
   font-size: large;
-  padding: 0.3em 1em;
-  text-align: center;
-  vertical-align: middle;
+  padding: 0.5rem 2rem 0.5rem 0;
+  margin-right: 2rem;
+  white-space: nowrap;
 }
 
-.banner .company div {
-  width: 100%;
-}
-
-.banner nav {
-  display: table;
-  height: 100%;
-  width: 100%;
-}
-
-.banner ul {
-  list-style: none;
-  display: table;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding-left: 0;
-}
-
-.banner li {
-  display: table-cell;
-  height: 100%;
-  text-align: center;
-  vertical-align: middle;
-  border-color: <?php echo $banner_border_color ?>;
-  border-style: solid;
-  border-width: 0 0 0 <?php echo $banner_border_cell_width ?>px;
-  padding: 0.3em 0.5em;
-}
-
-.banner li:first-child {
-  border-left-width: 0;
-}
-
-#logon_box a {
-  display: block;
-  width: 100%;
-  padding-top: 0.3em;
-  padding-bottom: 0.3em;
+.banner .company > * {
+  display: -ms-flexbox;
 }
 
 .banner a:link, .banner a:visited, .banner a:hover {
@@ -1041,7 +1329,7 @@ form#add_new_user {margin-left: 1em}
   font-weight: normal;
 }
 
-.banner a:link {
+.banner a:link, nav.logon input {
   color: <?php echo $anchor_link_color_banner ?>;
 }
 
@@ -1053,8 +1341,93 @@ form#add_new_user {margin-left: 1em}
   color: <?php echo $anchor_hover_color_banner ?>;
 }
 
-#form_nav input[type="submit"] {
-  margin-left: 0.5em;
+.banner nav.container {
+  width: 50%;
+  -ms-flex-positive: 1;
+  flex-grow: 1;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: row-reverse;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: stretch;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  padding: 0.75em 0;
+}
+
+.banner nav.container > nav {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: row;
+  flex-direction: row;
+  -ms-flex-align: stretch;
+  align-items: stretch;
+  justify-content: flex-end;
+  padding: 0.3em 0;
+}
+
+.banner nav.container > nav > nav {
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+.banner nav.container > nav:first-child {
+  -ms-flex-wrap: wrap-reverse;
+  flex-wrap: wrap-reverse;
+}
+
+.banner nav.container > nav:last-child > * {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+nav.menu, nav.logon {
+  margin-left: 1rem;
+  padding-left: 1rem;
+}
+
+nav.menu {
+  display: -ms-flexbox;
+  display: flex;
+}
+
+nav.logon {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
+nav.logon input {
+  background: none;
+  border: none;
+}
+
+.banner nav a,
+nav.logon input {
+  display: inline-block;
+  text-align: center;
+  padding: 0.3rem 1rem;
+  line-height: 1.5em;
+  border-radius: 0.8em;
+}
+
+.banner a.attention {
+  background-color: darkorange;
+}
+
+.banner nav a:hover,
+nav.logon input:hover {
+  background-color: darkblue;
+  color: #ffffff;
+}
+
+#form_nav {
+  padding-right: 1rem;
+  margin-right: 1rem;
 }
 
 input.link[type="submit"] {
@@ -1071,32 +1444,55 @@ form#show_my_entries input.link[type="submit"] {
   padding: 0.3em 0;
   font-weight: normal;
 }
-  
 
 <?php
-// The rules below are concerned with keeping the date selector in the header a constant width, so
-// that the header doesn't jump around when the page is loaded
+// THE COLOR KEY
+//
+// Displays as a grid for those browsers that support it, falling back to a flexbox.  The 
+// differences between the two levels of support are:
+//
+//  Grid:             If there is some spare space, the divs expand so that the grid rows 
+//                    nicely fill 100% of the container width.
+//  Flexbox:          As Grid, but the divs are of fixed width and won't expand, but will
+// (IE10 and IE11)    wrap onto the next row.
 ?>
 
-.js .banner #Form1 select {
-  display: none;
+.color_key {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
 }
 
-table#colour_key {clear: both; float: left; border-spacing: 0; border-collapse: collapse; margin-bottom: 0.5em}
-#colour_key td {width: 7.0em; padding: 2px; font-weight: bold;
-    color: <?php echo $colour_key_font_color ?>;
-    border: <?php echo $main_table_cell_border_width ?>px solid <?php echo $main_table_body_h_border_color ?>}
-#colour_key td#row_padding {border-right: 0; border-bottom: 0}
-
-form#header_search {
-  display: inline-block;
+.color_key {
+  display: inline-grid;
+  grid-template-columns: repeat(auto-fill, minmax(20ch, 1fr));
+  width: 100%;
+  margin-top: 1em;
 }
 
-#header_search input {
-  width: 6em;
+.color_key > div {
+  width: 12em;
+  color: <?php echo $color_key_font_color ?>;
+  word-wrap: break-word;
+  padding: 0.3em;
+  margin: -1px 0 0 -1px; <?php // to collapse the borders ?>
+  font-weight: bold;
+  border: <?php echo $main_table_cell_border_width ?>px solid <?php echo $main_table_body_h_border_color ?>
 }
 
-div#n_outstanding {margin-top: 0.5em}
+@supports (display: grid) {
+  .color_key > div {
+    width: auto;
+  }
+}
+
+
+
+header input[type="search"] {
+  width: 10em;
+}
+
 .banner .outstanding a {color: <?php echo $outstanding_color ?>}
 
 /* ------------ HELP.PHP ------------------------*/
@@ -1124,11 +1520,11 @@ table.details.has_caption {
 
 .details td {
   padding: 0 1.0em 0 0;
-  vertical-align: bottom;
 }
 
 .details td:first-child {
   text-align: right;
+  white-space: nowrap;
 }
 
 
@@ -1139,35 +1535,69 @@ div.problem_report {
 }
 
 /* ------------ MINCALS.PHP ---------------------*/
-#cals {float: right}
-div#cal_last {float: left}
-div#cal_this {float: left; margin-left: 1.0em}
-div#cal_next {float: left; margin-left: 1.0em}
 
-table.calendar {
+table.minicalendar {
   border-spacing: 0;
   border-collapse: collapse;
 }
 
-.calendar th {
+.minicalendar th {
   min-width: 2.0em;
   text-align: center;
   font-weight: normal;
   background-color: transparent;
-  color: <?php echo $standard_font_color ?>;
 }
 
-.calendar td {
+.minicalendar thead tr:first-child th {
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.5em;
+}
+
+.minicalendar thead tr:first-child th:first-child {
+  text-align: left;
+}
+
+.minicalendar thead tr:first-child th:last-child {
+  text-align: right;
+}
+
+.minicalendar td {
   text-align: center;
   font-size: x-small;
 }
 
-<?php
-// set the styling for the "hidden" days in the mini-cals
-?>
-.calendar th.hidden {background-color: <?php echo $calendar_hidden_color ?>} 
-.calendar td.hidden {background-color: <?php echo $calendar_hidden_color ?>; font-weight: bold} 
-.calendar a.current {font-weight: bold; color: <?php echo $highlight_font_color ?>}
+.minicalendar a.arrow {
+  display: block;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+}
+
+.minicalendar td > * {
+  display: block;
+  width: 2em;
+  height: 2em;
+  line-height: 2em;
+  margin: auto;
+  border-radius: 50%;
+}
+
+.minicalendar td.today a,
+.minicalendar td a:hover {
+  background-color: <?php echo $minical_today_color ?>;
+  color: <?php echo $standard_font_color ?>
+}
+
+.minicalendar .view {
+  background-color: <?php echo $minical_view_color ?>;
+}
+
+.minicalendar .hidden {
+  opacity: 0.7
+}
+
+.minicalendar a.current {font-weight: bold; color: <?php echo $highlight_font_color ?>}
 td#sticky_day {border: 1px dotted <?php echo $highlight_font_color ?>}
 td.mincals_week_number { opacity: 0.5; font-size: 60%; }
 
@@ -1229,6 +1659,16 @@ button#delete_button {float: left; clear: left; margin: 1em 0 3em 0}
 
 /* ------------ SEARCH.PHP ----------------------*/
 
+h3.search_results {
+  clear: left;
+  margin-bottom: 0;
+  padding-top: 2em;
+}
+
+.search p.error {
+  clear: left;
+}
+
 p#nothing_found {
   font-weight: bold;
 }
@@ -1258,65 +1698,6 @@ div#site_faq_body {margin-top: 2.0em}
 #site_faq_body h4 {border-top: 1px solid <?php echo $site_faq_entry_border_color ?>; padding-top: 0.5em; margin-top: 0} 
 #site_faq_body div {padding-bottom: 0.5em}
 #site_faq_body :target {background-color: <?php echo $help_highlight_color ?>}
-
-
-/* ------------ TRAILER.INC ---------------------*/
-div#trailer {
-  border-top: 1px solid <?php echo $trailer_border_color ?>; 
-  border-bottom: 1px solid <?php echo $trailer_border_color ?>; 
-  float: left;
-  clear: left;
-  margin-top: 1.0em; margin-bottom: 1.5em;
-  padding-top: 0.3em; padding-bottom: 0.3em;
-}
-
-#trailer div {
-  float: left;
-  width: 100%;
-}
-
-#trailer div.trailer_label {
-  float: left;
-  clear: left;
-  width: 20%;
-  max-width: 9.0em;
-  font-weight: bold;
-}
-
-#trailer div.trailer_links {
-  float: left;
-  width: 79%;  /* 79 to avoid rounding problems */
-  padding-left: 1em;
-}
-
-.trailer_label span {
-  margin-right: 1.0em;
-}
-
-#trailer span.current {
-  font-weight: bold;
-}
-
-#trailer span.hidden {
-  font-weight: normal; 
-  background-color: <?php echo $body_background_color ?>;  /* hack: only necessary for IE6 to prevent blurring with opacity */
-  opacity: 0.5;  /* if you change this value, change it in the IE sheets as well */
-}
-
-#trailer .current a {
-  color: <?php echo $highlight_font_color ?>;
-}
-
-div#simple_trailer {
-  clear: both;
-  text-align: center;
-  padding-top: 1.0em;
-  padding-bottom: 2.0em;
-}
-
-#simple_trailer a {
-  padding: 0 1.0em 0 1.0em;
-}
 
 
 /* ------------ VIEW_ENTRY.PHP ------------------*/
@@ -1467,8 +1848,47 @@ a.dt-button {
   padding-right: 20px;
 }
 
-
 #check_tabs {border:0}
 div#check_tabs {background-image: none}
 .edit_entry #ui-tab-dialog-close {position:absolute; right:0; top:23px}
 .edit_entry #ui-tab-dialog-close a {float:none; padding:0}
+
+
+
+<?php
+// Modify the flatpickr blue to match the MRBS blue
+?>
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected.inRange,
+.flatpickr-day.startRange.inRange,
+.flatpickr-day.endRange.inRange,
+.flatpickr-day.selected:focus,
+.flatpickr-day.startRange:focus,
+.flatpickr-day.endRange:focus,
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover,
+.flatpickr-day.selected.prevMonthDay,
+.flatpickr-day.startRange.prevMonthDay,
+.flatpickr-day.endRange.prevMonthDay,
+.flatpickr-day.selected.nextMonthDay,
+.flatpickr-day.startRange.nextMonthDay,
+.flatpickr-day.endRange.nextMonthDay {
+  background: dodgerblue;
+  border-color: dodgerblue;
+}
+
+.flatpickr-day.selected.startRange + .endRange,
+.flatpickr-day.startRange.startRange + .endRange,
+.flatpickr-day.endRange.startRange + .endRange {
+  -webkit-box-shadow: -10px 0 0 dodgerblue;
+  box-shadow: -10px 0 0 dodgerblue;
+}
+
+.flatpickr-day.week.selected {
+  -webkit-box-shadow:-5px 0 0 dodgerblue, 5px 0 0 dodgerblue;
+  box-shadow:-5px 0 0 dodgerblue, 5px 0 0 dodgerblue;
+}
+
