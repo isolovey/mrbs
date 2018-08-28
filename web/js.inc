@@ -1,7 +1,8 @@
 <?php 
 namespace MRBS;
 
-global $day, $month, $year, $room, $area;
+global $view, $year, $month, $day, $area, $room;
+global $debug;
 
 $page = this_page('.php');
 
@@ -36,16 +37,16 @@ $standard_query_string = "area=$area";
 // If you need any other components you will need to rebuild the custom UI library
 // See http://jqueryui.com/
 
-if (DEBUG)
+if ($debug)
 {
   ?>
-  <script type="text/javascript" src="jquery/jquery-3.2.1.js"></script>
+  <script type="text/javascript" src="jquery/jquery-3.3.1.js"></script>
   <?php
 }
 else
 {
   ?>
-  <script type="text/javascript" src="jquery/jquery-3.2.1.min.js"></script>
+  <script type="text/javascript" src="jquery/jquery-3.3.1.min.js"></script>
   <?php
 }
 
@@ -53,7 +54,7 @@ else
 // until we are confident that our JavaScript is not using any features that have
 // been removed.   The uncompressed version will output warnings about removed and
 // deprecated features to the console
-if (DEBUG)
+if ($debug)
 {
   ?>
   <script type="text/javascript" src="jquery/jquery-migrate-3.0.0.js"></script>
@@ -66,7 +67,7 @@ else
   <?php
 }
 
-if (DEBUG)
+if ($debug)
 {
   ?>
   <script type="text/javascript" src="jquery/ui/jquery-ui.js"></script>
@@ -77,11 +78,6 @@ else
   ?>
   <script type="text/javascript" src="jquery/ui/jquery-ui.min.js"></script>
   <?php
-}
-
-if (NULL !== ($datepicker_lang_file = get_datepicker_lang_file('jquery/ui/i18n')))
-{
-  echo "<script type=\"text/javascript\" src=\"${datepicker_lang_file}\"></script>";
 }
 ?>
     
@@ -103,14 +99,21 @@ if (NULL !== ($datepicker_lang_file = get_datepicker_lang_file('jquery/ui/i18n')
 <script type="text/javascript" src="js/functions.js.php?<?php echo $standard_query_string ?>"></script>
 <script type="text/javascript" src="js/datepicker.js.php?<?php echo $standard_query_string ?>"></script>
 <script type="text/javascript" src="js/general.js.php?<?php echo $standard_query_string ?>"></script>
+<script type="text/javascript" src="js/flatpickr/flatpickr.min.js"></script>
+<script type="text/javascript" src="jquery/select2/dist/js/select2.full.min.js"></script>
 
-    
 <?php
+$dir = 'js/flatpickr/l10n';
+if (null !== ($flatpickr_lang_file = get_flatpickr_lang_file($dir)))
+{
+  echo "<script type=\"text/javascript\" src=\"$dir/${flatpickr_lang_file}\"></script>\n";
+}
+
 // dataTables initialisation
 if (in_array($page, array('admin', 'edit_users', 'pending', 'report', 'search')))
 {
   // Include the JavaScript for those pages that use dataTables
-  if (DEBUG)
+  if ($debug)
   {
     ?>
     <script type="text/javascript" src="jquery/datatables/js/jquery.dataTables.js"></script>
@@ -155,23 +158,15 @@ if (is_readable("js/$page.js.php"))
 }
 
 // The day, week and month views do refresh by Ajax.
-if (in_array($page, array('day', 'week', 'month')))
+// We need the resizable booking and multiple bookings for the day and week views
+if ($page == 'index')
 {
   ?>
   <script type="text/javascript" src="js/refresh.js.php?<?php echo $standard_query_string ?>"></script>
-  <?php
-}
-
-
-// We need the resizable booking and multiple bookings for the day and week pages
-if (in_array($page, array('day', 'week')))
-{
-  ?>
   <script type="text/javascript" src="js/resizable.js.php?<?php echo $standard_query_string ?>"></script>
   <script type="text/javascript" src="js/multiple.js.php?<?php echo $standard_query_string ?>"></script>
   <?php
 }
-
 ?>
 
 <!--[if lte IE 8]>
@@ -179,7 +174,7 @@ if (in_array($page, array('day', 'week')))
   // Include the HTML5 Shiv so that elements such as <header> etc can be styled in IE8 and below.
   // (Even though we don't support IE8 and below, we still need the HTML5 Shiv for styling the 
   // page which says we don't support them!).
-  if (DEBUG)
+  if (debug)
   {
     ?>
     <script src="js/html5shiv.js"></script>
@@ -201,7 +196,8 @@ if (in_array($page, array('day', 'week')))
 
 $(window).on('load', function() {
 
-  var args = {area: '<?php echo $area?>',
+  var args = {view: '<?php echo $view?>',
+              area: '<?php echo $area?>',
               room: '<?php echo $room?>',
               page: '<?php echo $page?>',
               page_date: '<?php echo format_iso_date($year, $month, $day) ?>'};
@@ -214,7 +210,12 @@ $(window).on('load', function() {
     args.timetohighlight = '<?php echo $timetohighlight?>';
     <?php
   }
+  
+  // We also need to know if the user is an admin
+  $user = getUserName();
   ?>
+  args.isAdmin = <?php echo (authGetUserLevel($user) >= 2) ? 'true' : 'false';?>;
+
   init(args);
 
 });
