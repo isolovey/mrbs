@@ -10,11 +10,11 @@ if ($use_strict)
 {
   echo "'use strict';\n";
 }
+?>
 
-$user = getUserName();
-$is_admin = (authGetUserLevel($user) >= $max_level);
+var isAdmin;
 
-
+<?php
 // Set (if set is true) or clear (if set is false) a timer
 // to check for conflicts periodically in case someone else
 // books the slot you are looking at.  If setting the timer
@@ -136,7 +136,7 @@ function checkTimeSlots(jqDate)
                   year: parseInt(siblings.filter('input[id*="year"]').val(), 10),
                   tz: areaConfig('timezone'),
                   slots: slots};
-    $.post('check_slot_ajax.php', params, function(result) {
+    $.post('ajax/check_slot.php', params, function(result) {
         $.each(result.slots, function(key, value) {
             $('#' + result.id).find('option[value="' + value + '"]').remove();
           });
@@ -664,7 +664,7 @@ vocab.minutes = {singular: '<?php echo escape_js(get_vocab("minute_lc")) ?>',
                  plural:   '<?php echo escape_js(get_vocab("minutes")) ?>'};
 vocab.hours   = {singular: '<?php echo escape_js(get_vocab("hour_lc")) ?>',
                  plural:   '<?php echo escape_js(get_vocab("hours")) ?>'};
-vocab.days    = {singular: '<?php echo escape_js(get_vocab("day_lc")) ?>',
+vocab.days    = {singular: '<?php echo escape_js(get_vocab("day")) ?>',
                  plural:   '<?php echo escape_js(get_vocab("days")) ?>'};
 
 
@@ -768,16 +768,15 @@ function getDateDifference()
 {
   var diff,
       secondsPerDay = <?php echo SECONDS_PER_DAY ?>,
-      start = $('#start_date_alt').val().split('-'),
+      start = $('#start_date').val().split('-'),
       startDate = new Date(parseInt(start[0], 10), 
                            parseInt(start[1], 10) - 1,
                            parseInt(start[2], 10),
                            12),
-      endDateAlt = $('#end_date_alt'),
-      end,
-      endDate;
+      endDate = $('#end_date'),
+      end;
       
-  if (endDateAlt.length === 0)
+  if (endDate.length === 0)
   {
     <?php
     // No end date selector, so assume the end date is
@@ -787,7 +786,7 @@ function getDateDifference()
   }
   else
   {
-    end = $('#end_date_alt').val().split('-'); 
+    end = endDate.val().split('-'); 
     endDate = new Date(parseInt(end[0], 10), 
                        parseInt(end[1], 10) - 1,
                        parseInt(end[2], 10),
@@ -1047,9 +1046,9 @@ function adjustSlotSelectors()
       <?php
       // Limit the end slots to the maximum duration if that is enabled, if the
       // user is not an admin
-      if (!$is_admin)
+      ?>
+      if (!isAdmin)
       {
-        ?>
         if (maxDurationEnabled)
         {
           <?php
@@ -1089,9 +1088,8 @@ function adjustSlotSelectors()
             }
           }
         }
-        <?php
       }
-      ?>
+
       if ((thisValue > startValue) ||
           ((thisValue === startValue) && enablePeriods) ||
           (dateDifference !== 0))
@@ -1139,6 +1137,8 @@ var editEntryVisChanged = function editEntryVisChanged() {
 var oldInitEditEntry = init;
 init = function(args) {
   oldInitEditEntry.apply(this, [args]);
+  
+  isAdmin = args.isAdmin;
   
   <?php
   // If there's only one enabled area in the database there won't be an area
@@ -1399,7 +1399,7 @@ init = function(args) {
     {
       if ($('#end_date').css('visibility') === 'hidden')
       {
-        $('#end_date_alt').val($('#start_date_alt').val());
+        $('#end_date').val($('#start_date').val());
       }
     }
     

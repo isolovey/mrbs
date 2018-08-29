@@ -52,7 +52,7 @@ function generate_area_change_form($enabled_areas, $disabled_areas)
   
   $form = new Form();
   
-  $attributes = array('id'     => 'areaChangeForm',
+  $attributes = array('class'  => 'areaChangeForm',
                       'action' => this_page(),
                       'method' => 'post');
                       
@@ -127,8 +127,6 @@ function generate_area_change_form($enabled_areas, $disabled_areas)
 
 function generate_new_area_form()
 {
-  global $maxlength;
-  
   $form = new Form();
   
   $attributes = array('id'     => 'add_area',
@@ -151,7 +149,7 @@ function generate_new_area_form()
         ->setControlAttributes(array('id'        => 'area_name',
                                      'name'      => 'name',
                                      'required'  => true,
-                                     'maxlength' => $maxlength['area.area_name']));               
+                                     'maxlength' => maxlength('area.area_name')));               
   $fieldset->addElement($field);
   
   // The submit button
@@ -168,7 +166,6 @@ function generate_new_area_form()
 
 function generate_new_room_form()
 {
-  global $maxlength;
   global $area;
   
   $form = new Form();
@@ -195,7 +192,7 @@ function generate_new_room_form()
         ->setControlAttributes(array('id'        => 'room_name',
                                      'name'      => 'name',
                                      'required'  => true,
-                                     'maxlength' => $maxlength['room.room_name']));               
+                                     'maxlength' => maxlength('room.room_name')));               
   $fieldset->addElement($field);
   
   // The description field
@@ -203,7 +200,7 @@ function generate_new_room_form()
   $field->setLabel(get_vocab('description'))
         ->setControlAttributes(array('id'        => 'room_description',
                                      'name'      => 'description',
-                                     'maxlength' => $maxlength['room.description']));               
+                                     'maxlength' => maxlength('room.description')));               
   $fieldset->addElement($field);
    
   // Capacity
@@ -240,7 +237,7 @@ function generate_new_room_form()
 Form::checkToken($post_only=true);
 
 // Check the user is authorised for this page
-checkAuthorised();
+checkAuthorised(this_page());
 
 // Also need to know whether they have admin rights
 $user = getUserName();
@@ -250,7 +247,7 @@ $is_admin = (authGetUserLevel($user) >= $required_level);
 // Get non-standard form variables
 $error = get_form_var('error', 'string');
 
-print_header($day, $month, $year, isset($area) ? $area : null, isset($room) ? $room : null);
+print_header($view, $year, $month, $day, isset($area) ? $area : null, isset($room) ? $room : null);
 
 // Get the details we need for this area
 if (isset($area))
@@ -532,5 +529,4 @@ if ($is_admin || !empty($enabled_areas))
   echo "</div>\n";
 }
 
-output_trailer();
-
+print_footer();
