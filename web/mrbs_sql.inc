@@ -98,8 +98,6 @@ function mrbsCheckFree(&$booking, $ignore, $repignore)
   for ($i = 0; ($row = $res->row_keyed($i)); $i++)
   {
     $starts = getdate($row['start_time']);
-    $param_ym = "area=$area&amp;year=$starts[year]&amp;month=".$starts['mon'];
-    $param_ymd = $param_ym . "&amp;day=" . $starts['mday'];
 
     if ($enable_periods)
     {
@@ -120,12 +118,22 @@ function mrbsCheckFree(&$booking, $ignore, $repignore)
        $row['name'] = get_vocab("unavailable");
     }
 
-    // enclose  the viewday etc. links in a span to make it easier for JavaScript to strip them out
-    $err[] = "<a href=\"view_entry.php?id=".$row['id']."\">".$row['name']."</a>"
-      . " (" . $startstr . ', ' . $row['room_name'] .") "
-      . "<span>(<a href=\"day.php?$param_ymd\">".get_vocab("viewday")."</a>"
-      . " | <a href=\"week.php?room=$room_id&amp;$param_ymd\">".get_vocab("viewweek")."</a>"
-      . " | <a href=\"month.php?room=$room_id&amp;$param_ym\">".get_vocab("viewmonth")."</a>)</span>";
+    // enclose the viewday etc. links in a span to make it easier for JavaScript to strip them out
+    $vars = array('year'  => $starts['year'],
+                  'month' => $starts['mon'],
+                  'day'   => $starts['mday'],
+                  'area'  => $area,
+                  'room'  => $room_id);
+                  
+    $query = http_build_query($vars, '', '&');
+    
+    $err[] = "<a href=\"view_entry.php?id=" .$row['id'] . '">' . $row['name'] . '</a>' .
+             ' (' . $startstr . ', ' . $row['room_name'] . ') ' .
+             '<span>(' .
+             '<a href="index.php?view=day&amp;' . htmlspecialchars($query) . '">' . get_vocab('viewday') . '</a> | ' .
+             '<a href="index.php?view=week&amp;' . htmlspecialchars($query) . '">' . get_vocab('viewweek') . '</a> | ' .
+             '<a href="index.php?view=month&amp;' . htmlspecialchars($query) . '">' . get_vocab('viewmonth') . '</a>' .
+             ')</span>';
   }
 
   return $err;
@@ -1726,7 +1734,7 @@ function mrbsGetRoomArea($id)
 // error in $error
 function mrbsAddArea($name, &$error)
 {
-  global $maxlength, $tbl_area, $area_defaults, $boolean_fields;
+  global $tbl_area, $area_defaults, $boolean_fields;
   
   // First of all check that we've got a name
   if (!isset($name) || ($name === ''))
@@ -1736,7 +1744,7 @@ function mrbsAddArea($name, &$error)
   }
   
   // Truncate the name field to the maximum length as a precaution.
-  $name = utf8_substr($name, 0, $maxlength['area.area_name']);
+  $name = utf8_substr($name, 0, maxlength('area.area_name'));
   // Acquire a mutex to lock out others who might be editing the area
   if (!db()->mutex_lock($tbl_area))
   {
@@ -1806,7 +1814,7 @@ function mrbsAddArea($name, &$error)
 // error in $error
 function mrbsAddRoom($name, $area, &$error, $description='', $capacity='', $room_admin_email='')
 {
-  global $maxlength, $tbl_room;
+  global $tbl_room;
   
   // First of all check that we've got a name
   if (!isset($name) || ($name === ''))
@@ -1816,8 +1824,8 @@ function mrbsAddRoom($name, $area, &$error, $description='', $capacity='', $room
   }
   
   // Truncate the name and description fields to the maximum length as a precaution.
-  $name = utf8_substr($name, 0, $maxlength['room.room_name']);
-  $description = utf8_substr($description, 0, $maxlength['room.description']);
+  $name = utf8_substr($name, 0, maxlength('room.room_name'));
+  $description = utf8_substr($description, 0, maxlength('room.description'));
 
   if (empty($capacity))
   {
