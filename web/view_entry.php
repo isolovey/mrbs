@@ -220,7 +220,7 @@ if (isset($action))
 }
 
 // Check the user is authorised for this page
-checkAuthorised();
+checkAuthorised(this_page());
 
 // Also need to know whether they have admin rights
 $user = getUserName();
@@ -360,7 +360,30 @@ if (isset($action) && ($action == "export"))
 // PHASE 1 - VIEW THE ENTRY
 // ------------------------
 
-print_header($day, $month, $year, $area, isset($room) ? $room : null);
+print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
+
+
+// Need to tell all the links where to go back to after an edit or delete
+if (!isset($returl))
+{
+  if (isset($HTTP_REFERER))
+  {
+    $returl = basename($HTTP_REFERER);
+  }
+  // If we haven't got a referer (eg we've come here from an email) then construct
+  // a sensible place to go to afterwards
+  else
+  {
+    $vars = array('view'  => $default_view,
+                  'year'  => $year,
+                  'month' => $month,
+                  'day'   => $day,
+                  'area'  => $area,
+                  'room'  => $room);
+                  
+    $returl .= 'index.php?' . http_build_query($vars, '', '&');;
+  }
+}
 
 
 if (empty($series))
@@ -616,5 +639,4 @@ if (isset($HTTP_REFERER)) //remove the link if displayed from an email
 }
 
 
-output_trailer();
-
+print_footer();
