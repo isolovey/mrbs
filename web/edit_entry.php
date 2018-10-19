@@ -70,8 +70,9 @@ use MRBS\Form\FieldSelect;
 // then it will use the fieldname, eg 'coffee_machine'. 
 
 
-require "defaultincludes.inc";
-require_once "mrbs_sql.inc";
+require 'defaultincludes.inc';
+require_once 'mrbs_sql.inc';
+require_once 'functions_mail.inc';
   
 $fields = db()->field_info($tbl_entry);
 $custom_fields = array();
@@ -106,7 +107,6 @@ foreach ($fields as $field)
 function get_field_entry_input($params)
 {
   global $select_options, $datalist_options;
-  global $maxlength;
   
   if (isset($params['field']))
   {
@@ -171,9 +171,9 @@ function get_field_entry_input($params)
       {
         $field->setControlAttribute('value', $params['value']);
       }
-      if (isset($maxlength[$params['field']]))
+      if (null !== ($maxlength = maxlength($params['field'])))
       {
-        $field->setControlAttribute('maxlength', $maxlength[$params['field']]);
+        $field->setControlAttribute('maxlength', $maxlength);
       }
       break;
       
@@ -654,7 +654,7 @@ function get_field_privacy_status($value, $disabled=false)
 function get_field_custom($key, $disabled=false)
 {
   global $custom_fields, $custom_fields_map, $tbl_entry;
-  global $is_mandatory_field, $text_input_max, $maxlength;
+  global $is_mandatory_field, $text_input_max;
   
   // First check that the custom field exists.  It normally will, but won't if 
   // $edit_entry_field_order contains a value for which a field doesn't exist.
@@ -1111,7 +1111,7 @@ if (!isset($returl))
 }
 
 // Check the user is authorised for this page
-checkAuthorised();
+checkAuthorised(this_page());
 // Also need to know whether they have admin rights
 $user = getUserName();
 $is_admin = (authGetUserLevel($user) >= 2);
@@ -1508,11 +1508,11 @@ $enable_periods ? toPeriodString($start_min, $duration, $dur_units) : toTimeStri
 
 if (!getWritable($create_by, $user, $room_id))
 {
-  showAccessDenied($day, $month, $year, $area, isset($room) ? $room : null);
+  showAccessDenied($view, $year, $month, $day, $area, isset($room) ? $room : null);
   exit;
 }
 
-print_header($day, $month, $year, $area, isset($room) ? $room : null);
+print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
 
 // Get the details of all the enabled rooms
 $rooms = array();
@@ -1715,7 +1715,7 @@ if (($edit_type == "series") && $repeats_allowed)
 }
 
 // Checkbox for no email
-if ($need_to_send_mail &&
+if (need_to_send_mail() &&
     ($mail_settings['allow_no_mail'] || ($is_admin && $mail_settings['allow_admins_no_mail'])))
 {
   $form->addElement(get_fieldset_booking_controls());
@@ -1726,5 +1726,4 @@ $form->addElement(get_fieldset_submit_buttons());
 $form->render();
 
 
-output_trailer();
-
+print_footer();
