@@ -193,26 +193,34 @@ $error = get_form_var('error', 'string');
 // Need to tell all the links where to go back to after an edit or delete
 if (!isset($returl))
 {
-  if (isset($HTTP_REFERER))
+  // We need HTTP_REFERER to contain an actual page, and not be a directory, ie end in '/'
+  if (isset($HTTP_REFERER) && (substr($HTTP_REFERER, -1) != '/'))
   {
-    $returl = basename($HTTP_REFERER);
+    $parsed_url = parse_url($HTTP_REFERER);
+    $returl = basename($parsed_url['path']);
   }
   // If we haven't got a referer (eg we've come here from an email) then construct
   // a sensible place to go to afterwards
   else
   {
-    switch ($default_view)
-    {
-      case "month":
-        $returl = "month.php";
-        break;
-      case "week":
-        $returl = "week.php";
-        break;
-      default:
-        $returl = "day.php";
-    }
-    $returl .= "?year=$year&month=$month&day=$day&area=$area";
+    $returl = 'index.php';
+  }
+  
+  // Add on the query string
+  if (isset($parsed_url) && isset($parsed_url['query']))
+  {
+    $returl .= '?' . $parsed_url['query'];
+  }
+  else
+  {
+    $vars = array('view'  => $default_view,
+                  'year'  => $year,
+                  'month' => $month,
+                  'day'   => $day,
+                  'area'  => $area,
+                  'room'  => $room);
+                  
+    $returl .= '?' . http_build_query($vars, '', '&');;
   }
 }
 
@@ -223,7 +231,7 @@ if (isset($action))
 }
 
 // Check the user is authorised for this page
-checkAuthorised();
+checkAuthorised(this_page());
 
 // Also need to know whether they have admin rights
 $user = getUserName();
@@ -363,8 +371,7 @@ if (isset($action) && ($action == "export"))
 // PHASE 1 - VIEW THE ENTRY
 // ------------------------
 
-print_header($day, $month, $year, $area, isset($room) ? $room : null);
-
+print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
 
 if (empty($series))
 {
@@ -374,7 +381,6 @@ else
 {
   $series = 1;
 }
-
 
 // Now that we know all the data we start drawing it
 
@@ -619,5 +625,4 @@ if (isset($HTTP_REFERER)) //remove the link if displayed from an email
 }
 
 
-output_trailer();
-
+print_footer();
