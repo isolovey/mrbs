@@ -19,22 +19,22 @@ var intervalId;
 
 var refreshPage = function refreshPage() {
     if (!isHidden() && 
-        !refreshPage.disabled &&
+        !$('table.dwm_main').hasClass('resizing') &&
         !isMeteredConnection())
     {
       var data = {ajax: 1,
+                  view: refreshPage.args.view,
                   page_date: refreshPage.args.page_date,
-                  room: refreshPage.args.room,
-                  area: refreshPage.args.area};
+                  area: refreshPage.args.area,
+                  room: refreshPage.args.room};
       if (refreshPage.args.timetohighlight !== undefined)
       {
         data.timetohighlight = refreshPage.args.timetohighlight;
       }
       
-      $.post(refreshPage.args.page + '.php',
+      $.post('index.php',
              data,
              function(result){
-                 var table;
                  <?php
                  // (1) Empty the existing table in order to get rid of events
                  // and data and prevent memory leaks, (2) insert the updated 
@@ -44,32 +44,19 @@ var refreshPage = function refreshPage() {
                  ?>
                  if ((result.length > 0) && !isHidden() && !refreshPage.disabled)
                  {
-                   table = $('table.dwm_main');
-                   table.empty();
-                   table.html(result);
-                   createFloatingHeaders(table);
-                   updateTableHeaders(table);
-                   window.clearInterval(intervalId);
-                   intervalId = undefined;
-                   table.trigger('load');
+                   var table = $('table.dwm_main');
+                   if (!table.hasClass('resizing'))
+                   {
+                     table.empty();
+                     table.html(result);
+                     window.clearInterval(intervalId);
+                     intervalId = undefined;
+                     table.trigger('load');
+                   }
                  }
                },
              'html');
-    }  <?php // if (!isHidden() && !refreshPage.disabled) ?>
-  };
-
-<?php
-// Functions to turn off and on page refresh.  We don't want the page to be
-// refreshed while we are in the middle of resizing a booking or selecting a
-// set of empty cells.
-?>
-var turnOffPageRefresh = function turnOffPageRefresh() {
-    refreshPage.disabled = true;
-  };
-  
-  
-var turnOnPageRefresh = function turnOnPageRefresh() {
-    refreshPage.disabled = false;
+    }  <?php // if (!isHidden() etc.?>
   };
     
   
