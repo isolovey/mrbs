@@ -2,10 +2,6 @@
 namespace MRBS;
 
 use \DateTimeZone;
-use MRBS\Form\Form;
-use MRBS\Form\ElementInputSubmit;
-use MRBS\Form\ElementSelect;
-
 
 require_once "mrbs_sql.inc";
 
@@ -28,6 +24,48 @@ function get_cookie_path()
   return $cookie_path;
 }
 
+
+// Returns the maximum length, in characters, of a column, or NULL if the maximum
+// length is not known.   Should only be called after any database upgrades have been
+// performed as the results are stored in a static variable and so the maximum lengths
+// may change after an upgrade.
+function maxlength($column)
+{
+  global $table_vars;
+  
+  static $maxlengths = null;
+  
+  if (!isset($maxlengths))
+  {
+    $maxlengths = array();
+    
+    foreach ($table_vars as $table => $var)
+    {
+      global $$var;
+    
+      // Check to see if the table exists, as it won't yet if it's about
+      // to be created as part of an upgrade
+      if (db()->table_exists($$var))
+      {
+        // Find the maximum length of the CHAR and VARCHAR fields (we won't
+        // worry about TEXT fields)
+        $field_info = db()->field_info($$var);
+        
+        foreach ($field_info as $field)
+        {
+          if (($field['nature'] == 'character') && 
+              isset($field['length']) &&
+              ($field['length'] < 256))
+          {
+            $maxlengths[$table . '.' . $field['name']] = (int) $field['length'];
+          }
+        }
+      }
+    }
+  }
+  
+  return (isset($maxlengths[$column])) ? $maxlengths[$column] : null;
+}
 
 // Formats a number taking into account the current locale.  (Could use
 // the NumberFormatter class, but the intl extension isn't always installed.)
@@ -157,13 +195,13 @@ function this_page($suffix=null)
 global $private_override;
 if ($private_override == "private" )
 {
-  $private_mandatory=TRUE;
-  $private_default=TRUE;
+  $private_mandatory = true;
+  $private_default = true;
 }
 elseif ($private_override == "public" )
 {
-  $private_mandatory=TRUE;
-  $private_default=FALSE;
+  $private_mandatory = true;
+  $private_default = false;
 }
 
 
@@ -181,7 +219,9 @@ function rfc1123_date($timestamp)
 // If $seconds is <= 0, then caching is disabled.
 function expires_header($seconds)
 {
-  if ($seconds > 0)
+  global $debug;
+  
+  if (!$debug && ($seconds > 0))
   {
     // We also send a couple of extra headers as the "Expires" header alone
     // does not always result in caching.
@@ -218,14 +258,14 @@ function http_headers(array $headers, $expiry_seconds=0)
 // header uses are not yet available.
 function print_simple_header()
 {
-  print_header($day=null, $month=null, $year=null, $area=null, $room=null, $search_str=null, $simple=true);
+  print_header($view=null, $year=null, $month=null, $day=null, $area=null, $room=null, $simple=true);
 }
 
 
 // Print the page header
-function print_header($day=null, $month=null, $year=null, $area=null, $room=null, $search_str=null, $simple=false)
+function print_header($view=null, $year=null, $month=null, $day=null, $area=null, $room=null, $simple=false)
 {
-  global $theme;
+  global $theme, $default_view;
   
   static $done_header = false;
   
@@ -245,21 +285,36 @@ function print_header($day=null, $month=null, $year=null, $area=null, $room=null
     // This will set the correct timezone for the area
     get_area_settings($area);  
   }
-
-  // If we dont know the right date then make it up 
-  if (!isset($day))
+  
+  if (!isset($view))
   {
-    $day   = date("d");
+    $view = (isset($default_view)) ? $default_view : 'day';
+  }
+
+  // If we dont know the right date then use today's
+  if (!isset($year))
+  {
+    $year = date('Y');
   }
   if (!isset($month))
   {
-    $month = date("m");
+    $month = date('m');
   }
-  if (!isset($year))
+  if (!isset($day))
   {
-    $year  = date("Y");
+    $day = date('d');
   }
   
+  if (empty($area))
+  {
+    $area = get_default_area();
+  }
+
+  if (empty($room))
+  {
+    $room = get_default_room($area);
+  }
+
   // Load the print_theme_header function appropriate to the theme.    If there
   // isn't one then fall back to the default header.
   if (is_readable("Themes/$theme/header.inc"))
@@ -272,7 +327,7 @@ function print_header($day=null, $month=null, $year=null, $area=null, $room=null
   }
   
   // Now go and do it
-  print_theme_header($day, $month, $year, $area, $room, $simple, $search_str);
+  print_theme_header($view, $year, $month, $day, $area, $room, $simple);
   
   $done_header = true;
 }
@@ -280,7 +335,7 @@ function print_header($day=null, $month=null, $year=null, $area=null, $room=null
 
 // Print the standard footer, currently very simple.  Pass $and_exit as
 // TRUE to exit afterwards
-function print_footer($and_exit)
+function print_footer($and_exit=false)
 {
   global $theme;
   
@@ -306,7 +361,7 @@ function print_footer($and_exit)
 
 // Converts a duration of $dur seconds into a duration of
 // $dur $units
-function toTimeString(&$dur, &$units, $translate=TRUE)
+function toTimeString(&$dur, &$units, $translate=true)
 {
   if (abs($dur) >= 60)
   {
@@ -446,7 +501,7 @@ function get_period_interval($start_time, $end_time)
 }
 
 
-function toPeriodString($start_period, &$dur, &$units, $translate=TRUE)
+function toPeriodString($start_period, &$dur, &$units, $translate=true)
 {
   global $periods;
 
@@ -592,7 +647,7 @@ function byday_to_day($year, $month, $byday)
   }
   else
   {
-    return FALSE;
+    return false;
   }
 }
 
@@ -1103,7 +1158,7 @@ function some_area_predicate($field)
 // is TRUE then the search is limited to enabled areas
 //
 // Returns: boolean
-function some_area($field, $enabled=FALSE)
+function some_area($field, $enabled=false)
 {
   global $tbl_area;
   
@@ -1146,7 +1201,7 @@ function split_iso_date($date)
 
 
 // Get the local day name based on language. Note 2000-01-02 is a Sunday.
-function day_name($daynumber, $format=NULL)
+function day_name($daynumber, $format=null)
 {
   global $strftime_format;
   
@@ -1309,64 +1364,14 @@ function validate_email_list($list)
     {
       if (!validate_email(trim($email)))
       {
-        return FALSE;
+        return false;
       }
     }
   }
   
-  return TRUE;
+  return true;
 }
 
-
-// Display the entry-type color key. This has up to 2 rows, up to 5 columns.
-function show_colour_key()
-{
-  global $booking_types;
-  
-  // No point in showing the colour key if we aren't using entry types.  (Note:  count()
-  // returns 0 if its parameter is not set).
-  if (count($booking_types) < 2)
-  {
-    return;
-  }
-  
-  // set the table width.   Default is 5, but try and avoid rows of unequal length
-  switch (count($booking_types))
-  {
-    case '6':
-      $table_width = 3;
-      break;
-    case '8':
-    case '12':
-      $table_width = 4;
-      break;
-    default:
-      $table_width = 5;
-  }
-  echo "<table id=\"colour_key\"><tr>\n";
-  $n = 0;
-  foreach ($booking_types as $key)
-  {
-    $value = get_type_vocab($key);
-    if (++$n > $table_width)
-    {
-      $n = 1;
-      echo "</tr><tr>";
-    }
-    echo tdcell($key, 1);
-    echo "<div class=\"celldiv slots1\" " .  // put the description inside a div which will give clipping in case of long names
-    "title=\"$value\">\n";        // but put the name in the title so you can still read it all if you hover over it
-    echo "$value</div></td>\n";
-  }
-  // If there is more than one row and the bottom row isn't complete then 
-  // pad it out with a single merged cell
-  if ((count($booking_types) > $table_width) && ($n < $table_width))
-  {
-    echo "<td colspan=\"" . ($table_width - $n) . "\"" .
-        " id=\"row_padding\">&nbsp;</td>\n";
-  }
-  echo "</tr></table>\n";
-}
 
 // Round time down to the nearest resolution
 function round_t_down($t, $resolution, $am7)
@@ -1424,122 +1429,6 @@ function period_name($s)
   
   return $periods[period_index($s)];
 }
-
-
-// generates some html that can be used to select which area should be
-// displayed.
-function make_area_select_html($link, $current, $year, $month, $day)
-{
-  global $area_list_format;
-  
-  $out_html = '';
-  
-  $areas = get_area_names();
-
-  // Only show the areas if there are more than one of them, otherwise
-  // there's no point
-  if (count($areas) > 1)
-  {
-    $out_html .= "<div id=\"dwm_areas\">\n";
-    $out_html .= "<h3>" . get_vocab("areas") . "</h3>\n";
-    if ($area_list_format == "select")
-    {
-      $form = new Form();
-      
-      $form->setAttributes(array('id'     => 'areaChangeForm',
-                                 'method' => 'get',
-                                 'action' => $link));
-                                 
-      $form->addHiddenInput('page_date', format_iso_date($year, $month, $day));
-      
-      $select = new ElementSelect();
-      $select->setAttributes(array('class'    => 'room_area_select',
-                                   'id'       => 'area_select',
-                                   'name'     => 'area',
-                                   'onchange' => 'this.form.submit()'))
-             ->addSelectOptions($areas, $current, true);
-      $form->addElement($select);
-      
-      // Note:  the submit button will not be displayed if JavaScript is enabled
-      $submit = new ElementInputSubmit();
-      $submit->setAttributes(array('class' => 'js_none',
-                                   'value' => get_vocab('change')));
-      $form->addElement($submit);
-      
-      $out_html .= $form->toHTML();
-    }
-    else // list format
-    {
-      $out_html .= "<ul>\n";
-      foreach ($areas as $area_id => $area_name)
-      {
-        $out_html .= "<li><a href=\"$link?year=$year&amp;month=$month&amp;day=$day&amp;area=${area_id}\">";
-        $out_html .= "<span" . (($area_id == $current) ? ' class="current"' : '') . ">";
-        $out_html .= htmlspecialchars($area_name) . "</span></a></li>\n";
-      }
-      $out_html .= "</ul>\n";
-    }
-    $out_html .= "</div>\n";
-  }
-  return $out_html;
-} // end make_area_select_html
-
-
-function make_room_select_html ($link, $area, $current, $year, $month, $day)
-{
-  global $area_list_format;
-  
-  $out_html = '';
-  $rooms = get_room_names($area);
-  
-  // Only show the rooms if there's more than one of them, otherwise
-  // there's no point
-  if (count($rooms) > 1)
-  {
-    $out_html .= "<div id=\"dwm_rooms\">\n";
-    $out_html .= "<h3>" . get_vocab("rooms") . "</h3>";
-    if ($area_list_format == "select")
-    {
-      $form = new Form();
-      
-      $form->setAttributes(array('id'     => 'roomChangeForm',
-                                 'method' => 'get',
-                                 'action' => $link));
-                                 
-      $form->addHiddenInputs(array('page_date' => format_iso_date($year, $month, $day),
-                                   'area'      => $area));
-      
-      $select = new ElementSelect();
-      $select->setAttributes(array('class'    => 'room_area_select',
-                                   'id'       => 'room_select',
-                                   'name'     => 'room',
-                                   'onchange' => 'this.form.submit()'))
-             ->addSelectOptions($rooms, $current, true);
-      $form->addElement($select);
-      
-      // Note:  the submit button will not be displayed if JavaScript is enabled
-      $submit = new ElementInputSubmit();
-      $submit->setAttributes(array('class' => 'js_none',
-                                   'value' => get_vocab('change')));
-      $form->addElement($submit);
-      
-      $out_html .= $form->toHTML();
-    }
-    else  // list format
-    {
-      $out_html .= "<ul>\n";
-      foreach ($rooms as $room_id => $room_name)
-      {
-        $out_html .= "<li><a href=\"$link?year=$year&amp;month=$month&amp;day=$day&amp;area=$area&amp;room=" . $room_id . "\">";
-        $out_html .= "<span" . (($room_id == $current) ? ' class="current"' : '') . ">";
-        $out_html .= htmlspecialchars($room_name) . "</span></a></li>\n";
-      }
-      $out_html .= "</ul>\n";
-    }
-    $out_html .= "</div>\n";
-  }
-  return $out_html;
-} // end make_room_select_html
 
 
 // returns the numeric day of the week (0-6) in terms of the MRBS week as defined by 
@@ -1633,7 +1522,7 @@ function is_possibly_invalid($start, $end)
 // example from 0100 to 0159 in Europe/London.
 // Returns NULL if MRBS is unable to determine an answer, otherwise TRUE or FALSE (so
 // a simple equality test will default to a valid time if MRBS can't determine an answer)
-function is_invalid_datetime($hour, $minute, $second, $month, $day, $year, $tz=NULL)
+function is_invalid_datetime($hour, $minute, $second, $month, $day, $year, $tz=null)
 {
   global $timezone;
 
@@ -1641,7 +1530,7 @@ function is_invalid_datetime($hour, $minute, $second, $month, $day, $year, $tz=N
   // whether there's a transition into DST from the day before to the day after
   if (!function_exists('date_default_timezone_set'))
   {
-    return NULL;
+    return null;
   }
   
   if (empty($tz))
@@ -1657,7 +1546,7 @@ function is_invalid_datetime($hour, $minute, $second, $month, $day, $year, $tz=N
   $dayBefore = mktime($hour, $minute, $second, $month, $day-1, $year);
   if (date('I', $dayBefore))
   {
-    $result = FALSE;
+    $result = false;
   }
   else
   {
@@ -1666,7 +1555,7 @@ function is_invalid_datetime($hour, $minute, $second, $month, $day, $year, $tz=N
     $dayAfter = mktime($hour, $minute, $second, $month, $day+1, $year);
     if (!date('I', $dayAfter))
     {
-      $result = FALSE;
+      $result = false;
     }
     else
     {
@@ -1674,7 +1563,7 @@ function is_invalid_datetime($hour, $minute, $second, $month, $day, $year, $tz=N
       // However we can only do this efficiently in PHP 5.3.0 or greater
       if (version_compare(PHP_VERSION, '5.3.0') < 0)
       {
-        $result = NULL;
+        $result = null;
       }
       else
       {
@@ -1691,7 +1580,7 @@ function is_invalid_datetime($hour, $minute, $second, $month, $day, $year, $tz=N
         // If we failed for some reason to get any transition data, return NULL
         if (!isset($transition))
         {
-          $result = NULL;
+          $result = null;
         }
         else
         {
@@ -1913,11 +1802,11 @@ function is_private_event($privacy_status)
   global $private_override;
   if ($private_override == "private" )
   {
-    $privacy_status = TRUE;
+    $privacy_status = true;
   }
   elseif ($private_override == "public" )
   {
-    $privacy_status = FALSE;
+    $privacy_status = false;
   }
 
   return $privacy_status;
@@ -1981,20 +1870,20 @@ function is_cli()
   
   if (!$allow_cli)
   {
-    return FALSE;
-    
+    return false;
   }
+  
   if (defined('STDIN'))
   {
-    return TRUE;
+    return true;
   }
   elseif (is_cgi() && getenv('TERM'))
   {
-    return TRUE;
+    return true;
   }
   else
   {
-    return FALSE;
+    return false;
   }
 }
 
