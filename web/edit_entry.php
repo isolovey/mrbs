@@ -70,8 +70,9 @@ use MRBS\Form\FieldSelect;
 // then it will use the fieldname, eg 'coffee_machine'. 
 
 
-require "defaultincludes.inc";
-require_once "mrbs_sql.inc";
+require 'defaultincludes.inc';
+require_once 'mrbs_sql.inc';
+require_once 'functions_mail.inc';
   
 $fields = db()->field_info($tbl_entry);
 $custom_fields = array();
@@ -106,7 +107,6 @@ foreach ($fields as $field)
 function get_field_entry_input($params)
 {
   global $select_options, $datalist_options;
-  global $maxlength;
   
   if (isset($params['field']))
   {
@@ -171,9 +171,9 @@ function get_field_entry_input($params)
       {
         $field->setControlAttribute('value', $params['value']);
       }
-      if (isset($maxlength[$params['field']]))
+      if (null !== ($maxlength = maxlength($params['field'])))
       {
-        $field->setControlAttribute('maxlength', $maxlength[$params['field']]);
+        $field->setControlAttribute('maxlength', $maxlength);
       }
       break;
       
@@ -280,11 +280,11 @@ function get_slot_selector($area, $id, $name, $current_s, $display_none=false, $
   {
     // If $disabled is set, give the element a class so that the JavaScript
     // knows to keep it disabled
-    $field->setAttribute('class', 'keep_disabled');
+    $field->addClass('keep_disabled');
   }
   if ($display_none)
   {
-    $field->setAttribute('style', 'display: none');
+    $field->addClass('none');
   }
   
   if ($disabled && !$display_none)
@@ -308,7 +308,7 @@ function get_all_day($area, $input_id, $input_name, $display_none=false, $disabl
   
   if ($display_none || !$area['show_all_day'])
   {
-    $element->setAttribute('style', 'display: none');
+    $element->addClass('none');
   }
   
   // (1) If $display_none or $disabled are set then we'll also disable the select so
@@ -483,8 +483,8 @@ function get_field_areas($value, $disabled=false)
   // We will set the display to none and then turn it on in the JavaScript.  That's
   // because if there's no JavaScript we don't want to display it because we won't
   // have any means of changing the rooms if the area is changed.
-  $field->setAttributes(array('id'    => 'div_areas',
-                              'style' => 'display: none'))
+  $field->setAttributes(array('id'    => 'div_areas'))
+        ->addClass('none')
         ->setLabel(get_vocab('area'))
         ->setControlAttributes(array('name'     => 'area',
                                      'disabled' => $disabled))
@@ -528,12 +528,12 @@ function get_field_rooms($value, $disabled=false)
     
     $select = new ElementSelect();
     $select->setAttributes(array('id'       => 'rooms' . $a,
-                                 'style'    => 'display: none',
                                  'name'     => 'rooms[]',
                                  'multiple' => $multiroom_allowed, // If multiple is not set then required is unnecessary
                                  'required' => $multiroom_allowed, // and also causes an HTML5 validation error
                                  'disabled' => true,
                                  'size'     => '5'))
+           ->addClass('none')
            ->addSelectOptions($area_rooms, $room_ids[0], true);
     // Put in some data about the area for use by the JavaScript
     $select->setAttributes(array(
@@ -639,7 +639,7 @@ function get_field_privacy_status($value, $disabled=false)
 function get_field_custom($key, $disabled=false)
 {
   global $custom_fields, $custom_fields_map, $tbl_entry;
-  global $is_mandatory_field, $text_input_max, $maxlength;
+  global $is_mandatory_field, $text_input_max;
   
   // First check that the custom field exists.  It normally will, but won't if 
   // $edit_entry_field_order contains a value for which a field doesn't exist.
@@ -1096,18 +1096,17 @@ if (!isset($returl))
 }
 
 // Check the user is authorised for this page
-checkAuthorised();
-// Also need to know whether they have admin rights
+checkAuthorised(this_page());
+
 $user = getUserName();
-$is_admin = (authGetUserLevel($user) >= 2);
 
 // You're only allowed to make repeat bookings if you're an admin
 // or else if $auth['only_admin_can_book_repeat'] is not set
-$repeats_allowed = $is_admin || empty($auth['only_admin_can_book_repeat']);
+$repeats_allowed = is_book_admin() || empty($auth['only_admin_can_book_repeat']);
 // Similarly for multi-day
-$multiday_allowed = $is_admin || empty($auth['only_admin_can_book_multiday']);
+$multiday_allowed = is_book_admin() || empty($auth['only_admin_can_book_multiday']);
 // Similarly for multiple room selection
-$multiroom_allowed = $is_admin || empty($auth['only_admin_can_select_multiroom']);
+$multiroom_allowed = is_book_admin() || empty($auth['only_admin_can_select_multiroom']);
 
 
 
@@ -1175,7 +1174,7 @@ if (isset($id))
   {
     // Entry being copied by different user
     // If they don't have rights to view details, clear them
-    $privatewriteable = getWritable($entry['create_by'], $user, $entry['room_id']);
+    $privatewriteable = getWritable($entry['create_by'], $entry['room_id']);
     $keep_private = (is_private_event($private) && !$privatewriteable);
   }
   else
@@ -1410,7 +1409,7 @@ else
     }
     
     // Make sure the duration doesn't exceed the maximum
-    if (!$is_admin && $max_duration_enabled)
+    if (!is_book_admin() && $max_duration_enabled)
     {
       $duration = min($duration, (($enable_periods) ? $max_duration_periods : $max_duration_secs));
     }
@@ -1429,7 +1428,7 @@ else
     // Make sure the end_time falls within a booking day.   So if there are no 
     // restrictions, bring it back to the nearest booking day.   If the user is not
     // allowed multi-day bookings then make sure it is on the first booking day.
-    if ($is_admin || !$auth['only_admin_can_book_multiday'])
+    if (is_book_admin() || !$auth['only_admin_can_book_multiday'])
     {
       $end_time = fit_to_booking_day($end_time, $back=true);
     }
@@ -1491,13 +1490,13 @@ $enable_periods ? toPeriodString($start_min, $duration, $dur_units) : toTimeStri
 
 //now that we know all the data to fill the form with we start drawing it
 
-if (!getWritable($create_by, $user, $room_id))
+if (!getWritable($create_by, $room_id))
 {
-  showAccessDenied($day, $month, $year, $area, isset($room) ? $room : null);
+  showAccessDenied($view, $year, $month, $day, $area, isset($room) ? $room : null);
   exit;
 }
 
-print_header($day, $month, $year, $area, isset($room) ? $room : null);
+print_header($view, $year, $month, $day, $area, isset($room) ? $room : null);
 
 // Get the details of all the enabled rooms
 $rooms = array();
@@ -1568,7 +1567,7 @@ for ($i = 0; ($row = $res->row_keyed($i)); $i++)
   // We don't show the all day checkbox if it's going to result in bookings that
   // contravene the policy - ie if max_duration is enabled and an all day booking
   // would be longer than the maximum duration allowed.
-  $row['show_all_day'] = $is_admin || 
+  $row['show_all_day'] = is_book_admin() || 
                          !$row['max_duration_enabled'] ||
                          ( ($row['enable_periods'] && ($row['max_duration_periods'] >= count($row['periods']))) ||
                            (!$row['enable_periods'] && ($row['max_duration_secs'] >= ($last - $first))) );
@@ -1707,8 +1706,8 @@ if (($edit_type == "series") && $repeats_allowed)
 }
 
 // Checkbox for no email
-if ($need_to_send_mail &&
-    ($mail_settings['allow_no_mail'] || ($is_admin && $mail_settings['allow_admins_no_mail'])))
+if (need_to_send_mail() &&
+    ($mail_settings['allow_no_mail'] || (is_book_admin() && $mail_settings['allow_admins_no_mail'])))
 {
   $form->addElement(get_fieldset_booking_controls());
 }
@@ -1718,5 +1717,4 @@ $form->addElement(get_fieldset_submit_buttons());
 $form->render();
 
 
-output_trailer();
-
+print_footer();
