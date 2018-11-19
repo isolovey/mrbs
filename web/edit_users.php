@@ -79,6 +79,14 @@ elseif (isset($update_button))
 }
 
 
+// Checks whether the current user can edit the target user
+function can_edit_user($target)
+{
+  $user = getUserName();
+    
+  return (is_user_admin() || (strcasecmp($user, $target) === 0));
+}
+
 
 // Validates that the password conforms to the password policy
 // (Ideally this function should also be matched by client-side
@@ -158,14 +166,13 @@ function get_form_var_type($field)
 function output_row(&$row)
 {
   global $ajax, $json_data;
-  global $level, $min_user_editing_level, $user;
   global $fields, $ignore_columns, $select_options;
   
   $values = array();
   
   // First column, which is the name
   // You can only edit a user if you have sufficient admin rights, or else if that user is yourself
-  if (($level >= $min_user_editing_level) || (strcasecmp($row['name'], $user) == 0))
+  if (can_edit_user($row['name']))
   {
     $form = new Form();
     $form->setAttributes(array('method' => 'post',
@@ -298,8 +305,6 @@ function get_field_level($params, $disabled=false)
 
 function get_field_name($params, $disabled=false)
 {
-  global $maxlength;
-  
   $field = new FieldInputText();
   
   $field->setLabel($params['label'])
@@ -309,9 +314,9 @@ function get_field_name($params, $disabled=false)
                                      'required' => true,
                                      'pattern'  => REGEX_TEXT_POS));
                                      
-  if (isset($maxlength['users.name']))
+  if (null !== ($maxlength = maxlength('users.name')))
   {
-    $field->setControlAttribute('maxlength', $maxlength['users.name']);
+    $field->setControlAttribute('maxlength', $maxlength);
   }
   
   // If the name field is disabled we need to add a hidden input, because
@@ -327,8 +332,6 @@ function get_field_name($params, $disabled=false)
 
 function get_field_email($params, $disabled=false)
 {
-  global $maxlength;
-  
   $field = new FieldInputEmail();
   
   $field->setLabel($params['label'])
@@ -337,9 +340,9 @@ function get_field_email($params, $disabled=false)
                                      'disabled' => $disabled,
                                      'multiple' => true));
   
-  if (isset($maxlength['users.email']))
+  if (null !== ($maxlength = maxlength('users.email')))
   {
-    $field->setControlAttribute('maxlength', $maxlength['users.email']);
+    $field->setControlAttribute('maxlength', $maxlength);
   }    
   
   return $field;
@@ -349,7 +352,7 @@ function get_field_email($params, $disabled=false)
 function get_field_custom($custom_field, $params, $disabled=false)
 {
   global $select_options, $datalist_options, $is_mandatory_field;
-  global $maxlength, $text_input_max;
+  global $text_input_max;
   
   $key = $custom_field['name'];
   
@@ -427,9 +430,9 @@ function get_field_custom($custom_field, $params, $disabled=false)
       {
         $field->setControlAttribute('value', $params['value']);
       }
-      if (isset($maxlength[$params['field']]))
+      if (null !== ($maxlength = maxlength($params['field'])))
       {
-        $field->setControlAttribute('maxlength', $maxlength[$params['field']]);
+        $field->setControlAttribute('maxlength', $maxlength);
       }
       break;
       
@@ -539,7 +542,7 @@ if ($nusers > 0)
   $user = getUserName();
   $level = authGetUserLevel($user);
   // Check the user is authorised for this page
-  checkAuthorised();
+  checkAuthorised(this_page());
 }
 else 
 // We've just created the table.   Assume the person doing this IS an administrator
@@ -595,14 +598,14 @@ if (isset($Action) && ( ($Action == "Edit") or ($Action == "Add") ))
     }
   }
 
-  /* First make sure the user is authorized */
-  if (!$initial_user_creation && !auth_can_edit_user($user, $data['name']))
+  // First make sure the user is authorized
+  if (!$initial_user_creation && !can_edit_user($data['name']))
   {
     showAccessDenied();
     exit();
   }
-
-  print_header();
+  
+  print_header($view, $year, $month, $day, isset($area) ? $area : null, isset($room) ? $room : null);
   
   echo "<h2>";
   if ($initial_user_creation)
@@ -684,7 +687,7 @@ if (isset($Action) && ( ($Action == "Edit") or ($Action == "Add") ))
                     'name'  => VAR_PREFIX . $key,
                     'value' => $data[$key]);
                     
-    $disabled = ($level < $min_user_editing_level) && in_array($key, $auth['db']['protected_fields']);
+    $disabled = !is_user_admin() && in_array($key, $auth['db']['protected_fields']);
     
     switch ($key)
     {
@@ -715,7 +718,7 @@ if (isset($Action) && ( ($Action == "Edit") or ($Action == "Add") ))
         
       case 'name':
         // you cannot change a username (even your own) unless you have user editing rights
-        $fieldset->addElement(get_field_name($params, ($level < $min_user_editing_level)));
+        $fieldset->addElement(get_field_name($params, !is_user_admin()));
         break;
         
       case 'email':
@@ -736,7 +739,7 @@ if (isset($Action) && ( ($Action == "Edit") or ($Action == "Add") ))
   // Administrators get the right to delete users, but only those at the
   // the same level as them or lower.  Otherwise present a Back button.
   $delete = ($Id >= 0) &&
-            ($level >= $min_user_editing_level) &&
+            is_user_admin() &&
             ($level >= $data['level']);
   
   // Don't let the last admin be deleted, otherwise you'll be locked out.
@@ -747,7 +750,7 @@ if (isset($Action) && ( ($Action == "Edit") or ($Action == "Add") ))
   $form->render();
   
   // Print footer and exit
-  output_trailer();
+  print_footer();
   exit;
 }
 
@@ -760,7 +763,7 @@ if (isset($Action) && ($Action == "Update"))
   // If you haven't got the rights to do this, then exit
   $my_id = db()->query1("SELECT id FROM $tbl_users WHERE name=? LIMIT 1",
                         array(utf8_strtolower($user)));
-  if (($level < $min_user_editing_level) && ($Id != $my_id ))
+  if (!is_user_admin() && ($Id != $my_id ))
   {
     // It shouldn't normally be possible to get here.
     trigger_error("Attempt made to update a user without sufficient rights.", E_USER_NOTICE);
@@ -794,9 +797,9 @@ if (isset($Action) && ($Action == "Update"))
         // Trim the field to remove accidental whitespace
         $values[$fieldname] = trim($values[$fieldname]);
         // Truncate the field to the maximum length as a precaution.
-        if (isset($maxlength["users.$fieldname"]))
+        if (null !== ($maxlength = maxlength("users.$fieldname")))
         {
-          $values[$fieldname] = utf8_substr($values[$fieldname], 0, $maxlength["users.$fieldname"]);
+          $values[$fieldname] = utf8_substr($values[$fieldname], 0, $maxlength);
         }
       }
       
@@ -949,7 +952,7 @@ if (isset($Action) && ($Action == "Update"))
       $fieldname = $field['name'];;
       
       // Stop ordinary users trying to change fields they are not allowed to
-      if (($level < $min_user_editing_level) && in_array($fieldname, $auth['db']['protected_fields']))
+      if (!is_user_admin() && in_array($fieldname, $auth['db']['protected_fields']))
       {
         continue;
       }
@@ -1049,7 +1052,7 @@ if (isset($Action) && ($Action == "Delete"))
   }
   // you can't delete a user if you're not some kind of admin, and then you can't
   // delete someone higher than you
-  if (($level < $min_user_editing_level) || ($level < $target_level))
+  if (!is_user_admin() || ($level < $target_level))
   {
     showAccessDenied();
     exit();
@@ -1068,11 +1071,11 @@ if (isset($Action) && ($Action == "Delete"))
 
 if (!$ajax)
 {
-  print_header();
+  print_header($view, $year, $month, $day, isset($area) ? $area : null, isset($room) ? $room : null);
 
   echo "<h2>" . get_vocab("user_list") . "</h2>\n";
 
-  if ($level >= $min_user_editing_level) /* Administrators get the right to add new users */
+  if (is_user_admin()) /* Administrators get the right to add new users */
   {
     $form = new Form();
     
@@ -1150,9 +1153,7 @@ if ($initial_user_creation != 1)   // don't print the user table if there are no
     {
       // You can only see this row if (a) we allow everybody to see all rows or
       // (b) you are an admin or (c) you are this user
-      if (!$auth['only_admin_can_see_other_users'] ||
-          ($level >= $min_user_viewing_level) ||
-          (strcasecmp($row['name'], $user) == 0))
+      if (!$auth['only_admin_can_see_other_users'] || can_edit_user($row['name']))
       {
         output_row($row);
       }
@@ -1176,6 +1177,5 @@ if ($ajax)
 }
 else
 {
-  output_trailer();
+  print_footer();
 }
-
