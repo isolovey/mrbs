@@ -33,14 +33,14 @@ function authGet()
   global $returl;
 
   print_header();
-
-  echo "<p>".get_vocab("norights")."</p>\n";
   
   $target_url = this_page();
+  
   if (isset($QUERY_STRING))
   {
-    $target_url = $target_url . "?" . $QUERY_STRING;
+    $target_url = $target_url . '?' . $QUERY_STRING;
   }
+  
   print_login_form(this_page(), $target_url, $returl);
 
   exit();
@@ -143,11 +143,8 @@ function print_logon_box()
   }
   else
   {
-    print_unknown_user();
     print_logon_button($target_url);
   }
-  
-  print_userlist_link();
 }
 
 
@@ -211,8 +208,7 @@ if (isset($action))
       if (($valid_username = authValidateUser($username, $password)) === false)
       {
         print_header();
-        print_login_failed();
-        print_login_form(this_page(), $target_url, $returl);
+        print_login_form(this_page(), $target_url, $returl, get_vocab('unknown_user'));
         exit();
       }
       else
@@ -271,6 +267,6 @@ if (isset($action))
     echo "<p>Please click <a href=\"" . htmlspecialchars($target_url) . "\">here</a> if you're not redirected automatically to the page you requested.</p>\n";
 
     // Print footer and exit
-    print_footer(TRUE);
+    print_footer(true);
   }
 }

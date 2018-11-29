@@ -29,7 +29,6 @@ require_once MRBS_ROOT . '/session/functions_session.inc';
 
 // Include the SimpleSamlPhp autoloader
 $sspPath = $auth['saml']['ssp_path'];
-
 if (is_null($sspPath))
 {
   header('Content-Type: text/plain', true, 500);
@@ -41,12 +40,10 @@ use \SimpleSAML_Auth_Simple;
 
 // Get the SimpleSamlPhp instance for the configured auth source
 $authSource = $auth['saml']['authsource'];
-
 if (is_null($authSource))
 {
   $authSource = 'default-sp';
 }
-
 $ssp = new SimpleSAML_Auth_Simple($authSource);
 
 
@@ -111,11 +108,8 @@ function print_logon_box()
   }
   else
   {
-    print_unknown_user();
     print_saml_logon_button('/'.$target_url);
   }
-
-  print_userlist_link();
 }
 
 
@@ -128,6 +122,7 @@ function print_saml_logon_button($target_url)
   $url = $ssp->getLoginURL($target_url);
   $baseURL = strstr($url, '?', true);
   parse_str(substr(strstr($url, '?'), 1), $params);
+  
   $html = '';
 
   $html .= "<form method=\"get\" action=\"" . htmlspecialchars($baseURL) . "\">\n";

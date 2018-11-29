@@ -20,13 +20,13 @@ function authGet()
 
   print_header();
 
-  echo "<p>".get_vocab("norights")."</p>\n";
-
   $target_url = this_page();
+  
   if (isset($QUERY_STRING))
   {
-    $target_url = $target_url . "?" . $QUERY_STRING;
+    $target_url = $target_url . '?' . $QUERY_STRING;
   }
+  
   print_login_form(this_page(), $target_url, $returl);
 
   exit();
@@ -37,7 +37,7 @@ function getUserName()
 {
   if (!is_user_logged_in())
   {
-    return NULL;
+    return null;
   }
   
   $current_user = wp_get_current_user();
@@ -66,11 +66,8 @@ function print_logon_box()
   }
   else
   {
-    print_unknown_user();
     print_logon_button($target_url);
   } 
-  
-  print_userlist_link();
 }
 
 
@@ -122,8 +119,8 @@ if (isset($action))
       {
         $errors = $wp_user;  // $errors is a WordPress global
         print_header();
-        echo "<p>" . apply_filters ('login_errors', $wp_user->get_error_message()) . "</p>\n";
-        print_login_form(this_page(), $target_url, $returl);
+        $error_message = apply_filters ('login_errors', $wp_user->get_error_message());
+        print_login_form(this_page(), $target_url, $returl, $error_message);
         exit();
       }
       
@@ -151,6 +148,6 @@ if (isset($action))
     echo "<br>\n";
     echo "<p>Please click <a href=\"" . htmlspecialchars($target_url) . "\">here</a> if you're not redirected automatically to the page you requested.</p>\n";
     // Print footer and exit
-    print_footer(TRUE);
+    print_footer(true);
   }
 }
