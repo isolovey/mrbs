@@ -18,53 +18,6 @@ use MRBS\Form\Form;
 require_once MRBS_ROOT . '/session/functions_session.inc';
 
 
-/* authGet()
- * 
- * Request the user name/password
- * 
- * Returns: Nothing
- */
-function authGet()
-{
-  global $returl;
-
-  print_header();
-  $target_url = this_page(true);
-  print_login_form(this_page(), $target_url, $returl);
-
-  exit();
-}
-
-
-function getUserName()
-{
-  if (isset($_SESSION["UserName"]) && ($_SESSION["UserName"] !== ''))
-  {
-    return $_SESSION["UserName"];
-  }
-
-  return null;
-}
-
-
-// Print the logon entry on the top banner.
-function print_logon_box()
-{
-  $target_url = this_page(true);
-  $user=getUserName();
-  
-  if (isset($user))
-  {
-    print_report_link($user);
-    print_logoff_button($target_url);
-  }
-  else
-  {
-    print_logon_button($target_url);
-  } 
-}
-
-
 function logoff_user()
 {
   // Unset the session variables
