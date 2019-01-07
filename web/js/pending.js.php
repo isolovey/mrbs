@@ -10,15 +10,10 @@ if ($use_strict)
 {
   echo "'use strict';\n";
 }
-
-// =================================================================================
-
-// Extend the init() function 
 ?>
-var oldInitPending = init;
 
-init = function(args) {
-  oldInitPending.apply(this, [args]);
+
+$(document).on('page_ready', function() {
 
   <?php
   // Turn the table into a datatable, with subtables that appear/disappear when
@@ -126,4 +121,5 @@ init = function(args) {
   ?>
   tableOptions.colReorder = {"fixedColumnsLeft": 1};
   pendingDataTable = makeDataTable('#pending_table', tableOptions);
-};
+  
+});
