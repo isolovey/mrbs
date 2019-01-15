@@ -132,7 +132,7 @@ function print_goto_date($view, $year, $month, $day, $area, $room)
 
 function print_outstanding($query)
 {
-  $user = getUserName();
+  $user = session()->getUsername();
   
   if (!isset($user))
   {
@@ -234,6 +234,94 @@ function print_search($view, $year, $month, $day, $area, $room)
 }
 
 
+// Generate the username link, which gives a report on the user's upcoming bookings.
+function print_report_link(User $user)
+{
+  // If possible, provide a link to the Report page, otherwise the Search page
+  // and if that's not possible just print the username with no link.  (Note that
+  // the Search page isn't the perfect solution because it searches for any bookings
+  // containing the search string, not just those created by the user.)
+  if (checkAuthorised('report.php', true))
+  {
+    $attributes = array('action' => 'report.php');
+    $hidden_inputs = array('phase'        => '2',
+                           'creatormatch' => $user->username);
+  }
+  elseif (checkAuthorised('search.php', true))
+  {
+    $attributes = array('action' => 'search.php');
+    $hidden_inputs = array('search_str' => $user->username);
+  }
+  else
+  {
+    echo '<span>' . htmlspecialchars($user->username) . '</span>';
+    return;
+  }
+  
+  // We're authorised for either Report or Search so print the form.
+  $form = new Form();
+  
+  $attributes['id'] = 'show_my_entries';
+  $attributes['method'] = 'post';
+  $form->setAttributes($attributes)
+       ->addHiddenInputs($hidden_inputs);
+                               
+  $submit = new ElementInputSubmit();
+  $submit->setAttributes(array('title' => get_vocab('show_my_entries'),
+                               'value' => $user->username));
+  $form->addElement($submit);
+                               
+  $form->render();
+}
+
+
+function print_logonoff_button($params, $value)
+{
+  $form = new Form();
+  $form->setAttributes(array('method' => $params['method'],
+                             'action' => $params['action']));
+  
+  // Add the hidden fields
+  if (isset($params['hidden_inputs']))
+  {
+    $form->addHiddenInputs($params['hidden_inputs']);
+  }
+  
+  // The submit button
+  $element = new ElementInputSubmit();
+  $element->setAttribute('value', $value);
+  $form->addElement($element);
+  
+  $form->render();
+}
+
+
+function print_logon()
+{
+  if (method_exists(session(), 'getLogonFormParams'))
+  {
+    $form_params = session()->getLogonFormParams();
+    if (isset($form_params))
+    {
+      print_logonoff_button($form_params, get_vocab('login'));
+    }
+  }
+}
+
+
+function print_logoff()
+{
+  if (method_exists(session(), 'getLogoffFormParams'))
+  {
+    $form_params = session()->getLogoffFormParams();
+    if (isset($form_params))
+    {
+      print_logonoff_button($form_params, get_vocab('logoff'));
+    }
+  }
+}
+
+
 function print_banner($view, $year, $month, $day, $area, $room, $simple=false)
 {
   echo '<header class="banner' . (($simple) ? ' simple' : '') . "\">\n";
@@ -268,22 +356,19 @@ function print_banner($view, $year, $month, $day, $area, $room, $simple=false)
     
     echo "<nav class=\"logon\">\n";
     print_outstanding($query);
-    // For session protocols that define their own logon box...
-    // (Note: This really needs to be sorted out so that the HTML
-    // is taken out of the session code)
-    if (function_exists(__NAMESPACE__ . "\\print_logon_box"))
+    
+    $current_user = session()->getCurrentUser();
+    
+    if (isset($current_user))
     {
-      print_logon_box();
+      print_report_link($current_user);
+      print_logoff();
     }
     else
     {
-      $user = getUserName();
-      if (isset($user))
-      {
-        require_once MRBS_ROOT . '/session/functions_session.inc';
-        print_report_link($user);
-      }
+      print_logon();
     }
+    
     echo "</nav>\n";
     
     echo "</nav>\n";
