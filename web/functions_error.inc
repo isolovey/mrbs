@@ -29,8 +29,81 @@ function to_html($string)
 }
 
 
+function get_arg_string($args)
+{
+  $result = array();
+  
+  foreach ($args as $arg)
+  {
+    $type = gettype($arg);
+    
+    switch ($type)
+    {
+      case 'boolean';
+        $result[] = ($arg) ? 'true' : 'false';
+        break;
+        
+      case 'integer':
+      case 'double':
+      case 'string':
+        $result[] = $arg;
+        break;
+        
+      default:
+        $result[] = $type;
+        break;
+    }
+  }
+  
+  return implode(', ', $result);
+}
+
+
+// Generate a backtrace.  This function allows us to format the output slightly better
+// than debug_print_backtrace(), for example by replacing newlines with <br> tags.
+function generate_backtrace()
+{
+  $backtrace = '';
+  $calls = debug_backtrace();
+  
+  foreach ($calls as $i => $call)
+  { 
+    $backtrace .= "#$i ";
+    
+    if (isset($call['class']) && isset($call['type']))
+    {
+      $backtrace .= $call['class'] . $call['type'];
+    }
+    
+    if (isset($call['function']))
+    {
+      $backtrace .= $call['function'];
+      $backtrace .= '(';
+      // We're not interested in the args for the first two calls because they
+      // are just going to repeat the error message
+      if (isset($call['args']) && ($i > 1))
+      {
+        $backtrace .= get_arg_string($call['args']);
+      }
+      $backtrace .= ')';
+    }
+    
+    if (isset($call['file']) && isset($call['line']))
+    {
+      $backtrace .= ' called at [' . $call['file'] . ':' . $call['line'] . ']';
+    }
+    
+    $backtrace .= "\n";
+  }
+  
+  return $backtrace;
+}
+
+
 function output_error($heading, $body, $show_data=false)
 {
+  global $debug;
+  
   static $default_timezone_set = false;
   
   // We can't start outputting any error messages unless the default timezone has been set,
@@ -41,20 +114,29 @@ function output_error($heading, $body, $show_data=false)
     $default_timezone_set = true;
   }
   
-  if ($show_data)
+  if ($show_data &&
+      (isset($_GET) || isset($_POST) || isset($_SESSION)))
   {
-      if (isset($_GET))
-      {
-        $body .= "MRBS GET: " . print_r($_GET, true);
-      }
-      if (isset($_POST))
-      {
-        $body .= "MRBS POST: " . print_r($_POST, true);
-      }
-      if (isset($_SESSION))
-      {
-        $body .= "MRBS SESSION: " . print_r($_SESSION, true);
-      }
+    $body .= "\n";
+    if (isset($_GET))
+    {
+      $body .= "MRBS GET: " . print_r($_GET, true);
+    }
+    if (isset($_POST))
+    {
+      $body .= "MRBS POST: " . print_r($_POST, true);
+    }
+    if (isset($_SESSION))
+    {
+      $body .= "MRBS SESSION: " . print_r($_SESSION, true);
+    }
+  }
+  
+  $body .= "\n";
+  
+  if ($debug)
+  {
+    $body .=  generate_backtrace();
   }
   
   if (ini_get('display_errors'))
@@ -84,7 +166,7 @@ function error_handler($errno, $errstr, $errfile, $errline, $errcontext)
   // Show the superglobal data unless the error is minor
   $show_data = !in_array($errno, array(E_NOTICE, E_USER_NOTICE, E_USER_DEPRECATED));
   
-  output_error($heading, $errstr . "\n", $show_data);
+  output_error($heading, $errstr, $show_data);
 }
 
 
@@ -121,7 +203,7 @@ function fatal_error($message)
 {
   print_simple_header();
   echo "<p>\n". htmlspecialchars($message) . "</p>\n";
-  output_trailer();
+  print_footer();
   exit;
 }
 

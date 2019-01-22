@@ -18,7 +18,19 @@ class JFactory extends \JFactory {
     // user_id (integer), this creates problems when the username is
     // something like "1234", which is a valid username but is treated
     // as an id.   So convert everything to an id first.
-    $user_id = \JUserHelper::getUserId($username);
+    if (is_string($username))
+    {
+      $user_id = \JUserHelper::getUserId($username);
+      if (is_null($user_id))
+      {
+        // The user doesn't exist
+        return false;
+      }
+    }
+    else
+    {
+      $user_id = $username;
+    }
     
     // need to cast the object to MRBS\JUser to avoid more
     // Joomla timezone problems
