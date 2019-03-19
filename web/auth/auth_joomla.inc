@@ -11,66 +11,23 @@ if ($auth['session'] !== 'joomla')
 }
 
 
-/* authGetUserLevel($user)
+/* authValidateUser($user, $pass)
  * 
- * Determines the users access level
+ * Checks if the specified username/password pair are valid
  * 
- * $user - The user name
- *
+ * $user  - The user name
+ * $pass  - The password
+ * 
  * Returns:
- *   The users access level
+ *   false    - The pair are invalid or do not exist
+ *   true     - The user has been validated and logged in
  */
-function authGetUserLevel($username)
+function authValidateUser($user, $pass)
 {
-  global $auth;
-  
-  // User not logged in, user level '0'
-  if (!isset($username))
-  {
-    return 0;
-  }
-  
-  // Otherwise get the user's access levels
-  $user = JFactory::getUser($username);
-  $authorised_levels = $user->getAuthorisedViewLevels();
-  
-  // Check if they have manager access
-  if (isset($auth['joomla']['admin_access_levels']))
-  {
-    $admin_levels = (array)$auth['joomla']['admin_access_levels'];
-    if (count(array_intersect($authorised_levels, $admin_levels)) > 0)
-    {
-      return 2;
-    }
-  }
-  
-  // Check if they have user access
-  if (isset($auth['joomla']['user_access_levels']))
-  {
-    $user_levels = (array)$auth['joomla']['user_access_levels'];
-    if (count(array_intersect($authorised_levels, $user_levels)) > 0)
-    {
-      return 1;
-    }
-  }
-
-  // Everybody else is access level '0'
-  return 0;
-}
-
-
-// Gets the user's email address.   Returns an empty
-// string if one can't be found
-function authGetUserEmail($username)
-{
-  if (!isset($username) || $username === '')
-  {
-    return '';
-  }
-  
-  $user = JFactory::getUser($username);
-  $email = '"' . $user->name . '"<' . $user->email . '>';
-  return $email;
+      $mainframe = JFactory::getApplication('site');
+   
+      return $mainframe->login(array('username' => $user,
+                                     'password' => $pass));
 }
 
 

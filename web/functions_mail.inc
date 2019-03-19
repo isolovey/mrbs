@@ -461,7 +461,7 @@ function create_body($data, $mail_previous, $compare, $series, $action, $as_html
       // Give the name of the person deleting the entry (might not
       // be the same as the creator)
       $body .= get_mail_vocab("deleted_by") . ': ';
-      $user = getUserName();
+      $user = session()->getUsername();
       $body .= $user;
       break;
     default:
@@ -778,14 +778,14 @@ function create_addresses($data, $action)
   $cc[] = $mail_settings['cc'];
   
   // set the from address
-  $user = getUserName();
-  if (isset($user) &&
+  $current_user = session()->getCurrentUser();
+  if (isset($current_user) && in_array($action, array('more_info', 'reject', 'remind')))
       in_array($action, array('more_info', 'reject', 'remind')) &&
       !$mail_settings['use_from_for_all_mail'])
   {
-    $from = authGetUserEmail($user);
+    $from = $current_user->email;
   }
-
+  if (empty($from))
   if (empty($from))
   {
     $from = (isset($mail_settings['from'])) ? $mail_settings['from'] : null;
@@ -848,11 +848,10 @@ function create_addresses($data, $action)
       $cc = array_merge($cc, $to);
       $to = array();
     }
-    $booker = $data['create_by'];
-    $booker_email = authGetUserEmail($booker);
-    if (!empty($booker_email))
+    $booker = auth()->getUser($data['create_by']);
+    if (!empty($booker->email))
     {
-      $to[] = $booker_email;
+      $to[] = $booker->email;
     }
   }
   // In case $to and $cc are empty, no need to go further
