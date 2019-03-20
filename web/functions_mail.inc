@@ -463,6 +463,7 @@ function create_body($data, $mail_previous, $compare, $series, $action, $as_html
       break;
     case "delete":
       $body .= get_mail_vocab("mail_body_del_entry", $user_escaped);
+      $user = session()->getUsername();
       break;
     default:
       if ($compare)
@@ -778,12 +779,12 @@ function create_addresses($data, $action)
   $cc[] = $mail_settings['cc'];
   
   // set the from address
-  $user = getUserName();
-  if (isset($user) &&
+  $current_user = session()->getCurrentUser();
+  if (isset($current_user) &&
       in_array($action, array('more_info', 'reject', 'remind')) &&
       !$mail_settings['use_from_for_all_mail'])
   {
-    $from = authGetUserEmail($user);
+    $from = $current_user->email;
   }
 
   if (empty($from))
@@ -848,11 +849,10 @@ function create_addresses($data, $action)
       $cc = array_merge($cc, $to);
       $to = array();
     }
-    $booker = $data['create_by'];
-    $booker_email = authGetUserEmail($booker);
-    if (!empty($booker_email))
+    $booker = auth()->getUser($data['create_by']);
+    if (!empty($booker->email))
     {
-      $to[] = $booker_email;
+      $to[] = $booker->email;
     }
   }
   // In case $to and $cc are empty, no need to go further
