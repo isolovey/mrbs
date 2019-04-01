@@ -438,8 +438,8 @@ function create_body($data, $mail_previous, $compare, $series, $action, $as_html
 
   $body .= ($as_html) ? "<p>" : "";
 
-  $user = getUserName();
-  $user_escaped = ($as_html) ? htmlspecialchars($user) : $user;
+  $current_user = session()->getCurrentUser();
+  $user_escaped = ($as_html) ? htmlspecialchars($current_user->display_name) : $current_user->display_name;
 
   switch ($action)
   {
@@ -770,12 +770,12 @@ function create_addresses($data, $action)
   $cc[] = $mail_settings['cc'];
   
   // set the from address
-  $user = getUserName();
-  if (isset($user) &&
+  $current_user = session()->getCurrentUser();
+  if (isset($current_user) &&
       in_array($action, array('more_info', 'reject', 'remind')) &&
       !$mail_settings['use_from_for_all_mail'])
   {
-    $from = authGetUserEmail($user);
+    $from = $current_user->email;
   }
 
   if (empty($from))
@@ -840,11 +840,10 @@ function create_addresses($data, $action)
       $cc = array_merge($cc, $to);
       $to = array();
     }
-    $booker = $data['create_by'];
-    $booker_email = authGetUserEmail($booker);
-    if (!empty($booker_email))
+    $booker = auth()->getUser($data['create_by']);
+    if (!empty($booker->email))
     {
-      $to[] = $booker_email;
+      $to[] = $booker->email;
     }
   }
   // In case $to and $cc are empty, no need to go further
