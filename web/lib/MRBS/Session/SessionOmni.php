@@ -1,5 +1,5 @@
 <?php
-namespace MRBS;
+namespace MRBS\Session;
 
 /*
  * Session management scheme that relies on OmniHttpd security for user 
@@ -27,27 +27,26 @@ namespace MRBS;
  * 
  * in config.inc.php:
  *
- * $auth["type"]    = "none";
- * $auth["session"] = "omni";
+ * $auth['type']    = 'none';
+ * $auth['session'] = 'omni';
  *
  * Then, you may configure admin users:
  *
- * $auth["admin"][] = "user1";
- * $auth["admin"][] = "user2";
+ * $auth['admin'][] = 'user1';
+ * $auth['admin'][] = 'user2';
  */
  
-/* getAuth()
- * 
- *  No need to prompt for a name - this is done by the server.
- */
-function authGet()
+ 
+class SessionOmni extends SessionWithoutLogin
 {
-}
 
-function getUserName()
-{
-  global $server;
+  // No need to prompt for a name - this is done by the server.
   
-  return $server['REMOTE_USER'];
+  public function getUsername()
+  {
+    global $server;
+    
+    return (isset($server['REMOTE_USER'])) ? $server['REMOTE_USER'] : null;
+  }
+  
 }
-
