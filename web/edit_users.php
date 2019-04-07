@@ -82,24 +82,29 @@ elseif (isset($update_button))
 // Checks whether the current user can view the target user
 function can_view_user($target)
 {
-  global $auth, $min_user_viewing_level, $level;
+  global $auth, $min_user_viewing_level;
 
-  $current_username = getUserName();
+  $current_user = session()->getCurrentUser();
 
-  // You can only see this user if (a) we allow everybody to see all users or
-  // (b) you are an admin or (c) you are this user
+  // You can only see this user if you are logged in and (a) we allow everybody to see all
+  // users or (b) you are an admin or (c) you are this user
+  if (!isset($current_user))
+  {
+    return false;
+  }
+
   return (!$auth['only_admin_can_see_other_users']  ||
-          ($level >= $min_user_viewing_level) ||
-          (strcasecmp($current_username, $target) === 0));
+          ($current_user->level >= $min_user_viewing_level) ||
+          (strcasecmp($current_user->username, $target) === 0));
 }
 
 
 // Checks whether the current user can edit the target user
 function can_edit_user($target)
 {
-  $current_username = getUserName();
+  $current_user = session()->getCurrentUser();
     
-  return (is_user_admin() || (strcasecmp($current_username, $target) === 0));
+  return (is_user_admin() || (isset($current_user) && strcasecmp($current_user->username, $target) === 0));
 }
 
 
@@ -571,8 +576,8 @@ $initial_user_creation = false;
 
 if (count($users) > 0)
 {
-  $current_username = getUserName();
-  $level = authGetUserLevel($current_username);
+  $current_user = session()->getCurrentUser();
+  $level = (isset($current_user)) ? $current_user->level : 0;
   // Check the user is authorised for this page
   checkAuthorised(this_page());
 }
@@ -588,7 +593,6 @@ else
     $id = null;
   }
   $level = $max_level;
-  $current_username = '';           // to avoid an undefined variable notice
 }
 
 
@@ -797,10 +801,10 @@ if (isset($action) && ( ($action == "edit") or ($action == "add") ))
 if (isset($action) && ($action == "update"))
 {
   // If you haven't got the rights to do this, then exit
-  if (isset($current_username))
+  if (isset($current_user))
   {
     $my_id = db()->query1("SELECT id FROM $tbl_users WHERE name=? LIMIT 1",
-                          array(utf8_strtolower($current_username)));
+                          array(utf8_strtolower($current_user->level)));
   }
   else
   {
