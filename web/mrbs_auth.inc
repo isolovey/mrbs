@@ -1,6 +1,10 @@
 <?php
 namespace MRBS;
 
+use MRBS\Auth\AuthFactory;
+use MRBS\Session\SessionFactory;
+
+
 if (!isset($auth['session']))
 {
   switch ($auth['type'])
@@ -17,8 +21,45 @@ if (!isset($auth['session']))
 }
 
 // Need to be in this order
+
 require_once "auth/auth_$auth[type].inc";
-require_once "session/session_$auth[session].inc";
+
+if (method_exists(session(), 'processForm'))
+{
+  session()->processForm();
+}
+
+
+// Convenience wrapper function to provide access to an Auth object
+function auth()
+{
+  global $auth;
+  
+  static $auth_obj = null;
+
+  if (is_null($auth_obj))
+  {
+    $auth_obj = AuthFactory::create($auth['type']);
+  }
+  
+  return $auth_obj;
+}
+
+
+// Convenience wrapper function to provide access to a Session object
+function session()
+{
+  global $auth;
+  
+  static $session_obj = null;
+
+  if (is_null($session_obj))
+  {
+    $session_obj = SessionFactory::create($auth['session']);
+  }
+  
+  return $session_obj;
+}
 
 
 // Gets the minimum user level required to access a page
@@ -108,14 +149,19 @@ function getAuthorised($level)
   }
 
   // Otherwise we need to check who they are
-  $user = getUserName();
-  if(isset($user) == false)
+  $current_user = session()->getCurrentUser();
+  
+  if(!isset($current_user))
   {
-    authGet();
+    // Ask them to authenticate, if the session scheme supports it
+    if (method_exists(session(), 'authGet'))
+    {  
+      session()->authGet();
+    }
     return false;
   }
 
-  return authGetUserLevel($user) >= $level;
+  return ($current_user->level >= $level);
 }
 
 
@@ -139,8 +185,8 @@ function checkAuthorised($page, $just_check=false)
       return true;
     }
     
-    $user = getUserName();
-    return (isset($user)) ? (authGetUserLevel($user) >= $required_level) : false;
+    $current_user = session()->getCurrentUser();
+    return (isset($current_user) && ($current_user->level >= $required_level));
   }
   
   // Check that the user has this level
@@ -180,7 +226,7 @@ function checkAuthorised($page, $just_check=false)
  */
 function getWritable($creator, $room)
 {
-  $user = getUserName();
+  $user = session()->getUsername();
   
   // Always allowed to modify your own stuff
   if(strcasecmp($creator, $user) === 0)
@@ -212,9 +258,12 @@ function showAccessDenied($view=null, $year=null, $month=null, $day=null, $area=
 
   echo "<h1>" . get_vocab("accessdenied") . "</h1>\n";
   echo "<p>" . get_vocab("norights") . "</p>\n";
-  echo "<p>\n";
-  echo "<a href=\"" . htmlspecialchars($server['HTTP_REFERER']) . "\">\n" . get_vocab("returnprev") . "</a>\n";
-  echo "</p>\n";
+  if (isset($server['HTTP_REFERER']))
+  {
+    echo "<p>\n";
+    echo "<a href=\"" . htmlspecialchars($server['HTTP_REFERER']) . "\">\n" . get_vocab("returnprev") . "</a>\n";
+    echo "</p>\n";
+  }
 
   // Print footer and exit
   print_footer(true);
@@ -226,42 +275,27 @@ function is_admin()
 {
   global $max_level;
   
-  $user = getUserName();
+  $current_user = session()->getCurrentUser();
   $required_level = (isset($max_level) ? $max_level : 2);
-  
-  return (authGetUserLevel($user) >= $required_level);
+
+  return (isset($current_user) && ($current_user->level >= $required_level));
 }
 
 
 // Checks whether the current user has booking administration rights
-// for $rooms - ie is allowed to modify and delete other people's bookings
-// and to approve bookings.   $rooms can be either a single scalar value or
-// an array of room ids.  If an array, then TRUE is only returned if the user
-// is a booking admin for all rooms in the array.  The default value for $rooms
-// is all rooms.
+// for $room - ie is allowed to modify and delete other people's bookings
+// and to approve bookings.   The default value for $room is all rooms.
 //
 // At the moment $room is ignored, but is passed here so that later
 // it can be enhanced to provide fine-grained permissions
 // 
 // Returns:  TRUE if the user is allowed has booking admin rights for
 //           the room; otherwise FALSE
-function is_book_admin($rooms=null)
+function is_book_admin($room=null)
 {
-  if (is_array($rooms) && (count($rooms) > 0))
-  {
-    foreach ($rooms as $room)
-    {
-      if (!is_book_admin($room))
-      {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  $user = getUserName();
+  $current_user = session()->getCurrentUser();
   
-  return (authGetUserLevel($user) >= 2);
+  return (isset($current_user) && ($current_user->level >= 2));
 }
 
 
@@ -270,7 +304,7 @@ function is_user_admin()
 {
   global $min_user_editing_level;
   
-  $user = getUserName();
+  $current_user = session()->getCurrentUser();
 
-  return (authGetUserLevel($user) >= $min_user_editing_level);
+  return (isset($current_user) && ($current_user->level >= $min_user_editing_level));
 }
