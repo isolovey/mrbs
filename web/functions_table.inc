@@ -171,7 +171,7 @@ function cell_html($s, array $cell, array $query_vars, $is_invalid = false)
   // to the edit entry form.     If there is one booking, then the booking is shown in that
   // cell.    If there is more than one booking then all the bookings are shown.
   
-  // $query_vars is an array containg the query vars to be used in the link for the cell.
+  // $query_vars is an array containing the query vars to be used in the link for the cell.
   // It is indexed as follows:
   //    ['new_periods']   the vars to be used for an empty cell if using periods
   //    ['new_times']     the vars to be used for an empty cell if using times
@@ -209,7 +209,7 @@ function cell_html($s, array $cell, array $query_vars, $is_invalid = false)
       $class = 'new';
     }
     
-    // If there's no booking or if there are multiple boookings then make the slot one unit long
+    // If there's no booking or if there are multiple bookings then make the slot one unit long
     $slots = (count($cell) == 1) ? $cell[0]['n_slots'] : 1;
     
     $html .= tdcell($class, $slots);
@@ -473,11 +473,64 @@ function get_query_vars($view, $area, $room, $month, $day, $year, $s)
 }
 
 
+function get_times_header_cells($start, $end, $increment)
+{
+  global $enable_periods;
+
+  $html = '';
+
+  for ($s = $start; $s <= $end; $s += $increment)
+  {
+    // Put the number of seconds since the start of the day (nominal, ignoring DST)
+    // in a data attribute so that JavaScript can pick it up
+    $html .= "<th data-seconds=\"$s\">";
+    // We need the span so that we can apply some padding.   We can't apply it
+    // to the <th> because that is used by jQuery.offset() in resizable bookings
+    $html .= "<span>";
+    if ( $enable_periods )
+    {
+      $html .= htmlspecialchars(period_name($s));
+    }
+    else
+    {
+      $html .= htmlspecialchars(get_timeslot_text($s, $increment));
+    }
+    $html .= "</span>";
+    $html .= "</th>\n";
+  }
+
+  return $html;
+}
+
+
+function get_rooms_header_cells($rooms, $vars)
+{
+  $html = '';
+
+  foreach($rooms as $room)
+  {
+    $vars['room'] = $room['id'];
+    $query = http_build_query($vars, '', '&');
+    // Put the room_id in a data attribute so that JavaScript can pick it up
+    $html .= '<th data-room="' . $room['id'] . '">';
+
+    $html .= '<a href="index.php?' . htmlspecialchars($query) . '" ' .
+             'title="' . get_vocab("viewweek") . " &#10;&#10;" . $room['description'] . '">' .
+             htmlspecialchars($room['room_name']) . ($room['capacity'] > 0 ? ' (' . $room['capacity'] . ')' : '') .
+             '</a>';
+
+    $html .= "</th>\n";
+  }
+
+  return $html;
+}
+
+
 function day_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $timetohighlight=null)
 {
-  global $enable_periods, $periods;
+  global $enable_periods;
   global $times_along_top, $row_labels_both_sides, $column_labels_both_ends;
-  global $resolution, $morningstarts, $morningstarts_minutes, $eveningends, $eveningends_minutes;
+  global $resolution, $morningstarts, $morningstarts_minutes;
 
   $rooms = get_rooms($area_id);
   $n_rooms = count($rooms);
@@ -485,22 +538,7 @@ function day_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $ti
   if ($n_rooms == 0)
   {
     // Add an 'empty' data flag so that the JavaScript knows whether this is a real table or not
-    return "<tbody data-empty=1><tr><td><h1>".get_vocab("no_rooms_for_area")."</h1></td></tr></tbody>";
-  }
-  
-  // ensure that $morningstarts_minutes defaults to zero if not set
-  if (!isset($morningstarts_minutes))
-  {
-    $morningstarts_minutes = 0;
-  }
-  
-  if ($enable_periods)
-  {
-    $resolution = 60;
-    $morningstarts = 12;
-    $morningstarts_minutes = 0;
-    $eveningends = 12;
-    $eveningends_minutes = count($periods) - 1;
+    return "<tbody data-empty=1><tr><td><h1>" . get_vocab("no_rooms_for_area") . "</h1></td></tr></tbody>";
   }
 
   $start_first_slot = get_start_first_slot($month, $day, $year);
@@ -531,74 +569,44 @@ function day_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $ti
   // TABLE HEADER
   $thead = "<thead>\n";
   $header_inner = "<tr>\n";
-  
+
+  if ($times_along_top)
+  {
+    $tag = 'room';
+  }
+  elseif ($enable_periods)
+  {
+    $tag = 'period';
+  }
+  else
+  {
+    $tag = 'time';
+  }
+
+  $first_last_html = '<th class="first_last">' . get_vocab($tag) . "</th>\n";
+  $header_inner .= $first_last_html;
+
   // We can display the table in two ways
   if ($times_along_top)
   {
-    // with times along the top and rooms down the side
-    $first_last_html = '<th class="first_last">' . get_vocab('room') . "</th>\n";
-    $header_inner .= $first_last_html;
-    
-    for ($s = $morning_slot_seconds;
-         $s <= $evening_slot_seconds;
-         $s += $resolution)
-    {
-      // Put the number of seconds since the start of the day (nominal, ignoring DST)
-      // in a data attribute so that JavaScript can pick it up
-      $header_inner .= "<th data-seconds=\"$s\">";
-      // We need the span so that we can apply some padding.   We can't apply it
-      // to the <th> because that is used by jQuery.offset() in resizable bookings
-      $header_inner .= "<span>";
-      if ( $enable_periods )
-      {
-        $header_inner .= htmlspecialchars(period_name($s));
-      }
-      else
-      {
-        $header_inner .= htmlspecialchars(get_timeslot_text($s, $resolution));
-      }
-      $header_inner .= "</span>";
-      $header_inner .= "</th>\n";
-    }
-    
-    // next: line to display times on right side
-    if (!empty($row_labels_both_sides))
-    {
-      $header_inner .= $first_last_html;
-    }
-  } // end "times_along_top" view (for the header)
-  
+    $header_inner .= get_times_header_cells($morning_slot_seconds, $evening_slot_seconds, $resolution);
+  }
   else
   {
-    // the standard view, with rooms along the top and times down the side
-    $first_last_html = '<th class="first_last">' . 
-                       ($enable_periods ? get_vocab('period') : get_vocab('time')) .
-                       "</th>\n";
-    $header_inner .= $first_last_html;
-    
-    foreach($rooms as $room)
-    {
-      $vars = array('view' => 'week',
-        'year' => $year,
-        'month' => $month,
-        'day' => $day,
-        'area' => $area_id,
-        'room' => $room['id']);
+    $vars = array('view' => 'week',
+                  'year' => $year,
+                  'month' => $month,
+                  'day' => $day,
+                  'area' => $area_id);
 
-      $query = http_build_query($vars, '', '&');
-      // Put the room_id in a data attribute so that JavaScript can pick it up
-      $header_inner .= '<th data-room="' . $room['id'] . '">' .
-        '<a href="index.php?' . htmlspecialchars($query) . '" ' .
-        'title="' . get_vocab("viewweek") . " &#10;&#10;" . $room['description'] . '">' .
-        htmlspecialchars($room['room_name']) . ($room['capacity'] > 0 ? ' (' . $room['capacity'] . ')' : '') . "</a></th>\n";
-    }
-  
-    // next line to display times on right side
-    if (!empty($row_labels_both_sides))
-    {
-      $header_inner .= $first_last_html;
-    }
+    $header_inner .= get_rooms_header_cells($rooms, $vars);
   }  // end standard view (for the header)
+
+  // next: line to display times on right side
+  if (!empty($row_labels_both_sides))
+  {
+    $header_inner .= $first_last_html;
+  }
   
   $header_inner .= "</tr>\n";
   $thead .= $header_inner;
@@ -737,9 +745,9 @@ function day_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $ti
 
 function week_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $timetohighlight=null)
 {
-  global $enable_periods, $periods;
+  global $enable_periods;
   global $times_along_top, $row_labels_both_sides, $column_labels_both_ends;
-  global $resolution, $morningstarts, $morningstarts_minutes, $eveningends, $eveningends_minutes;
+  global $resolution, $morningstarts, $morningstarts_minutes;
   global $weekstarts, $strftime_format;
 
   // Check that we've got a valid, enabled room
@@ -753,22 +761,7 @@ function week_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $t
   }
   
   // We have a valid room
-  $num_of_days=7; // days in a week
-
-  // ensure that $morningstarts_minutes defaults to zero if not set
-  if (!isset($morningstarts_minutes))
-  {
-    $morningstarts_minutes = 0;
-  }
-  
-  if ($enable_periods)
-  {
-    $resolution = 60;
-    $morningstarts = 12;
-    $morningstarts_minutes = 0;
-    $eveningends = 12;
-    $eveningends_minutes = count($periods) - 1;
-  }
+  $num_of_days = 7; // days in a week
   
   // Calculate how many days to skip back to get to the start of the week
   $time = mktime(12, 0, 0, $month, $day, $year);
@@ -780,7 +773,7 @@ function week_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $t
   
   // Define the start and end of each day of the week in a way which is not
   // affected by daylight saving...
-  for ($j = 0; $j<=($num_of_days-1); $j++)
+  for ($j = 0; $j < $num_of_days; $j++)
   {
     $start_first_slot[$j] = get_start_first_slot($month, $day_start_week+$j, $year);
     $start_last_slot[$j] = get_start_last_slot($month, $day_start_week+$j, $year);
@@ -793,10 +786,9 @@ function week_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $t
   }
   unset($j);  // Just so that we pick up any accidental attempt to use it later
 
-
   $week_map = array();
 
-  for ($j = 0; $j<=($num_of_days-1) ; $j++)
+  for ($j = 0; $j < $num_of_days; $j++)
   {
     $entries = get_entries_by_room($room_id, $start_first_slot[$j], $start_last_slot[$j] + $resolution);
     foreach ($entries as $entry)
@@ -823,51 +815,32 @@ function week_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $t
     $dformat = preg_replace("/<br>/", " ", $dformat);
   }
 
+  if ($times_along_top)
+  {
+    $tag = 'date';
+  }
+  elseif ($enable_periods)
+  {
+    $tag = 'period';
+  }
+  else
+  {
+    $tag = 'time';
+  }
+
+  $first_last_html = '<th class="first_last">' . get_vocab($tag) . "</th>\n";
+  $header_inner .= $first_last_html;
 
   // We can display the table in two ways
   if ($times_along_top)
   {
-    // with times along the top and days of the week down the side
-    $first_last_html = '<th class="first_last">' . 
-                       get_vocab('date') . "</th>\n";
-    $header_inner .= $first_last_html;
-    
-    for ($s = $morning_slot_seconds;
-         $s <= $evening_slot_seconds;
-         $s += $resolution)
-    {
-      // Put the seconds since the start of the day (nominal, not adjusted for DST)
-      // into a data attribute so that it can be picked up by JavaScript
-      $header_inner .= "<th data-seconds=\"$s\">";
-      // We need the span so that we can apply some padding.   We can't apply it
-      // to the <th> because that is used by jQuery.offset() in resizable bookings
-      $header_inner .= "<span>";
-      if ( $enable_periods )
-      {
-        $header_inner .= htmlspecialchars(period_name($s));
-      }
-      else
-      {
-        $header_inner .= htmlspecialchars(get_timeslot_text($s, $resolution));
-      }
-      $header_inner .= "</span>";
-      $header_inner .= "</th>\n";
-    }
-    // next: line to display times on right side
-    if (!empty($row_labels_both_sides))
-    {
-      $header_inner .= $first_last_html;
-    }
-  } // end "times_along_top" view (for the header)
+    $header_inner .= get_times_header_cells($morning_slot_seconds, $evening_slot_seconds, $resolution);
+  }
 
   else
   {
     // the standard view, with days along the top and times down the side
-    $first_last_html = '<th class="first_last">' . 
-                       ($enable_periods ? get_vocab('period') : get_vocab('time')) . '</th>';
-    $header_inner .= $first_last_html;
-    
-    for ($j = 0; $j<=($num_of_days-1) ; $j++)
+    for ($j = 0; $j < $num_of_days; $j++)
     {
       $t = mktime(12, 0, 0, $month, $day_start_week+$j, $year);
       $date = date('Y-m-d', $t);
@@ -897,13 +870,13 @@ function week_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $t
       }
     }  // for ($j = 0 ...
     unset($j);  // Just so that we pick up any accidental attempt to use it later
-    
-    // next line to display times on right side
-    if (!empty($row_labels_both_sides))
-    {
-      $header_inner .= $first_last_html;
-    }
   }  // end standard view (for the header)
+
+  // next line to display times on right side
+  if (!empty($row_labels_both_sides))
+  {
+    $header_inner .= $first_last_html;
+  }
 
   $header_inner .= "</tr>\n";
   $thead .= $header_inner;
@@ -920,58 +893,55 @@ function week_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $t
   {
     // with times along the top and days of the week down the side
     // See note above: weekday==0 is day $weekstarts, not necessarily Sunday.
-    for ($thisday = 0; $thisday<=($num_of_days-1); $thisday++)
+    for ($thisday = 0; $thisday < $num_of_days; $thisday++)
     {
       if (is_hidden_day(($thisday + $weekstarts) % 7))
       {
         // These days are to be hidden in the display: don't display a row
         continue;
       }
-    
-      else
-      {
-        $tbody .= "<tr>\n";
-      
-        $wt = mktime( 12, 0, 0, $month, $day_start_week + $thisday, $year );
-        $wday = date("d", $wt);
-        $wmonth = date("m", $wt);
-        $wyear = date("Y", $wt);
-        $wdate = date('Y-n-d', $wt);
-        
-        $day_cell_text = utf8_strftime($dformat, $wt);
-        
-        $vars = array('view'  => 'day',
-                      'year'  => strftime("%Y", $wt),
-                      'month' => strftime("%m", $wt),
-                      'day'   => strftime("%d", $wt),
-                      'area'  => $area_id,
-                      'room'  => $room_id);
-                      
-        $day_cell_link = 'index.php?' . htmlspecialchars(http_build_query($vars, '', '&'));
-                       
-        $tbody .= day_cell_html($day_cell_text, $day_cell_link, $wdate);
-        
-        for ($s = $morning_slot_seconds;
-             $s <= $evening_slot_seconds;
-             $s += $resolution)
-        {
-          $is_invalid = $is_possibly_invalid[$thisday] && is_invalid_datetime(0, 0, $s, $wmonth, $wday, $wyear);
-          // set up the query vars to be used for the link in the cell
-          $query_vars = get_query_vars($view, $area_id, $room_id, $wmonth, $wday, $wyear, $s);
 
-          // and then draw the cell
-          if (!isset($week_map[$room_id][$thisday][$s]))
-          {
-            $week_map[$room_id][$thisday][$s] = array();  // to avoid an undefined index NOTICE error
-          }
-          $tbody .= cell_html($s, $week_map[$room_id][$thisday][$s], $query_vars, $is_invalid);
-        }  // end looping through the time slots
-        if ( false != $row_labels_both_sides )
+      $tbody .= "<tr>\n";
+
+      $wt = mktime( 12, 0, 0, $month, $day_start_week + $thisday, $year );
+      $wday = date("d", $wt);
+      $wmonth = date("m", $wt);
+      $wyear = date("Y", $wt);
+      $wdate = date('Y-n-d', $wt);
+
+      $day_cell_text = utf8_strftime($dformat, $wt);
+
+      $vars = array('view'  => 'day',
+                    'year'  => strftime("%Y", $wt),
+                    'month' => strftime("%m", $wt),
+                    'day'   => strftime("%d", $wt),
+                    'area'  => $area_id,
+                    'room'  => $room_id);
+
+      $day_cell_link = 'index.php?' . htmlspecialchars(http_build_query($vars, '', '&'));
+
+      $tbody .= day_cell_html($day_cell_text, $day_cell_link, $wdate);
+
+      for ($s = $morning_slot_seconds;
+           $s <= $evening_slot_seconds;
+           $s += $resolution)
+      {
+        $is_invalid = $is_possibly_invalid[$thisday] && is_invalid_datetime(0, 0, $s, $wmonth, $wday, $wyear);
+        // set up the query vars to be used for the link in the cell
+        $query_vars = get_query_vars($view, $area_id, $room_id, $wmonth, $wday, $wyear, $s);
+
+        // and then draw the cell
+        if (!isset($week_map[$room_id][$thisday][$s]))
         {
-          $tbody .= day_cell_html($day_cell_text, $day_cell_link, $wdate);
+          $week_map[$room_id][$thisday][$s] = array();  // to avoid an undefined index NOTICE error
         }
-        $tbody .= "</tr>\n";
+        $tbody .= cell_html($s, $week_map[$room_id][$thisday][$s], $query_vars, $is_invalid);
+      }  // end looping through the time slots
+      if ( false != $row_labels_both_sides )
+      {
+        $tbody .= day_cell_html($day_cell_text, $day_cell_link, $wdate);
       }
+      $tbody .= "</tr>\n";
     
     }  // end looping through the days of the week
   
@@ -1016,7 +986,7 @@ function week_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $t
   
   
       // See note above: weekday==0 is day $weekstarts, not necessarily Sunday.
-      for ($thisday = 0; $thisday<=($num_of_days-1) ; $thisday++)
+      for ($thisday = 0; $thisday < $num_of_days; $thisday++)
       {
         if (is_hidden_day(($thisday + $weekstarts) % 7))
         {
@@ -1180,7 +1150,7 @@ function get_booking_summary($start, $end, $day_start, $day_end)
 function month_table_innerhtml($view, $year, $month, $day, $area, $room)
 {
   global $weekstarts, $view_week_number, $show_plus_link, $monthly_view_entries_details;
-  global $periods, $enable_periods, $morningstarts, $morningstarts_minutes;
+  global $enable_periods, $morningstarts, $morningstarts_minutes;
   global $approval_enabled, $confirmation_enabled;
   global $is_private_field;
 
@@ -1201,15 +1171,6 @@ function month_table_innerhtml($view, $year, $month, $day, $area, $room)
   // What column the month starts in: 0 means $weekstarts weekday.
   $weekday_start = (date("w", $month_start) - $weekstarts + 7) % 7;
   $days_in_month = date("t", $month_start);
-  
-  if ($enable_periods)
-  {
-    $resolution = 60;
-    $morningstarts = 12;
-    $morningstarts_minutes = 0;
-    $eveningends = 12;
-    $eveningends_minutes = count($periods)-1;
-  }
   
   // Get all meetings for this month in the room that we care about
   // This data will be retrieved day-by-day fo the whole month

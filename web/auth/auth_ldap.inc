@@ -1,6 +1,8 @@
 <?php
 namespace MRBS;
 
+require_once MRBS_ROOT . '/auth/functions_auth.inc';
+
 define('LDAP_SUCCESS',                        0x00);
 define('LDAP_OPERATIONS_ERROR',               0x01);
 define('LDAP_PROTOCOL_ERROR',                 0x02);
@@ -84,15 +86,17 @@ define('LDAP_REFERRAL_LIMIT_EXCEEDED',        0x61);
  * then performs a callback, passing the LDAP object, $base_dn,
  * user DN (in $dn), $user and a generic object $object
  *
- * $callback - The callback function
- * $user     - The user name
- * &$object  - Reference to the generic object, type defined by caller
+ * $callback   - The callback function
+ * $user       - The user name
+ * &$object    - Reference to the generic object, type defined by caller
+ * $keep_going - Don't stop when a user has been found, but keep going through all the LDAP
+ *               hosts.  Useful, for example, when you want to get a list of all users.
  * 
  * Returns:
  *   false    - The pair are invalid or do not exist
  *   string   - The validated username
  */
-function authLdapAction($callback, $user, &$object)
+function authLdapAction($callback, $user, &$object, $keep_going=false)
 {
   global $auth;
   global $ldap_host;
@@ -196,7 +200,7 @@ function authLdapAction($callback, $user, &$object)
       $all_ldap_opts[$item] = array_fill(0, $count, $$item);
     }
   }
-
+  
   foreach ($all_ldap_opts['ldap_host'] as $idx => $host)
   {
     // establish ldap connection
@@ -208,7 +212,7 @@ function authLdapAction($callback, $user, &$object)
     {
       $ldap = ldap_connect($host);
     }
-
+    
     // Check that connection was established
     if ($ldap)
     {
@@ -263,7 +267,7 @@ function authLdapAction($callback, $user, &$object)
 
         if (!$res)
         {
-          authLdapDebug("authLdapAction: Initial bind failed: ".ldap_error($ldap));
+          authLdapDebug("authLdapAction: Initial bind failed: ". mrbs_ldap_error($ldap));
         }
         else
         {
@@ -318,18 +322,18 @@ function authLdapAction($callback, $user, &$object)
       {
         $res = $ns_callback($ldap, $all_ldap_opts['ldap_base_dn'][$idx], $dn,
                             $user_search, $user, $object);
-        if ($res)
+        if ($res && !$keep_going)
         {
           return $user;
         }
       }
 
     } // if ($ldap)
-
+    
     ldap_unbind($ldap);
   } // foreach
-  
-  return false;
+
+  return ($keep_going) ? true : false;
 }
 
 
@@ -497,7 +501,26 @@ function authValidateUserCallback(&$ldap, $base_dn, $dn, $user_search,
     }
     else
     {
-      $filter = ldap_escape_filter($object['config']['ldap_filter']);
+      // If we've got a search DN and password, then bind again using those credentials because
+      // it's possible that the user doesn't have read access in the directory, even for their own
+      // entry, in which case we'll get a "No such object" result.
+      if (isset($object['config']['ldap_dn_search_dn']) &&
+          isset($object['config']['ldap_dn_search_password']))
+      {
+        authLdapDebug("authValidateUserCallback: rebinding as '" . $object['config']['ldap_dn_search_dn'] . "'");
+        if (!mrbs_ldap_bind($ldap, $object['config']['ldap_dn_search_dn'], $object['config']['ldap_dn_search_password']))
+        {
+          authLdapDebug("authValidateUserCallback: rebinding failed: " . mrbs_ldap_error($ldap));
+          if ($ldap_unbind_between_attempts)
+          {
+            ldap_unbind($ldap);
+          }
+          return false;
+        }
+        authLdapDebug("authValidateUserCallback: rebinding successful");
+      }
+
+      $filter = $object['config']['ldap_filter'];
       
       authLdapDebug("authValidateUserCallback: Successful authenticated ".
                     "bind checking '$filter'");
@@ -539,7 +562,7 @@ function authValidateUserCallback(&$ldap, $base_dn, $dn, $user_search,
   }
   else
   {
-    authLdapDebug("authValidateUserCallback: Bind to '$dn' failed: ".ldap_error($ldap));
+    authLdapDebug("authValidateUserCallback: Bind to '$dn' failed: ". mrbs_ldap_error($ldap));
   }
 
   if ($ldap_unbind_between_attempts)
@@ -658,6 +681,115 @@ function authGetUserLevel($user)
   return $user_levels[$user];
 }
 
+
+function authGetUsernames()
+{
+  return authLdapGetUsernames();
+}
+
+
+function authLdapGetUsernames()
+{
+  $object = array();
+  $object['users'] = array();
+  $users = array();
+  $user = getUserName();
+
+  $res = authLdapAction("authLdapGetUsernamesCallback", $user, $object, true);
+
+  if ($res && isset($object['users']))
+  {
+    $users = $object['users'];
+  }
+
+  sort_users($users);
+  
+  return $users;
+}
+
+
+function authLdapGetUsernamesCallback(&$ldap, $base_dn, $dn, $user_search,
+                                      $user, &$object)
+{
+  authLdapDebug("authLdapGetUsernamesCallback: base_dn '$base_dn'");
+  
+  if (!$ldap || !$base_dn || !isset($object['config']['ldap_user_attrib']))
+  {
+    authLdapDebug("authLdapGetUsernamesCallback: invalid parameters, could not call ldap_search, returning false");
+    return false;
+  }
+
+  if (isset($object['config']['ldap_filter']))
+  {
+    $filter = $object['config']['ldap_filter'];
+  }
+  else
+  {
+    $filter = 'objectclass=*';
+  }
+  $filter = "($filter)";
+
+  // Form the attributes
+  $username_attrib = utf8_strtolower($object['config']['ldap_user_attrib']);
+  $attributes = array($username_attrib);
+
+  // The display name attribute might not have been set in the config file
+  if (isset($object['config']['ldap_name_attrib']))
+  {
+    $display_name_attrib = utf8_strtolower($object['config']['ldap_name_attrib']);
+    $attributes[] = $display_name_attrib;
+  }
+
+  authLdapDebug("authLdapGetUsernamesCallback: searching with base_dn '$base_dn' and filter '$filter'");
+
+  $res = ldap_search($ldap, $base_dn, $filter, $attributes);
+
+  if ($res == false)
+  {
+    authLdapDebug("authLdapGetUsernamesCallback: ldap_search failed: " . mrbs_ldap_error($ldap));
+    return false;
+  }
+
+  authLdapDebug("authLdapGetUsernamesCallback: " . ldap_count_entries($ldap, $res) . " entries found");
+
+  $entry = ldap_first_entry($ldap, $res);
+
+  // Loop through the entries to get all the users
+  while ($entry)
+  {
+    // Initialise all keys in the user array to NULL, in case an attribute isn't present
+    $user = array('username' => null,
+                  'display_name' => null);
+
+    $attribute = ldap_first_attribute($ldap, $entry);
+
+    // Loop through all the attributes for this user
+    while ($attribute)
+    {
+      $values = ldap_get_values($ldap, $entry, $attribute);
+      $attribute = utf8_strtolower($attribute);  // ready for the comparisons
+
+      if ($attribute == $username_attrib)
+      {
+        $user['username'] = $values[0];
+      }
+      elseif ($attribute == $display_name_attrib)
+      {
+        $user['display_name'] = $values[0];
+      }
+
+      $attribute = ldap_next_attribute($ldap, $entry);
+    }
+
+    $object['users'][] = $user;
+    $entry = ldap_next_entry($ldap, $entry);
+  }
+
+  return true;
+}
+
+
+
 /* authLdapGetName($user)
  *
  * Gets the name of the user from LDAP
@@ -734,7 +866,7 @@ function authLdapIsAdmin($user)
 {
   global $auth;
   
-  if (isset($user) && ($user !== ''))
+  if (isset($auth['admin']) && isset($user) && ($user !== ''))
   {
     foreach ($auth['admin'] as $admin)
     {
@@ -749,11 +881,11 @@ function authLdapIsAdmin($user)
 }
 
 
-function ldap_escape_filter($value)
+function mrbs_ldap_escape ($value, $ignore='', $flags=0)
 {
   if (function_exists('ldap_escape'))
   {
-    return ldap_escape($value, null, LDAP_ESCAPE_FILTER);
+    return ldap_escape($value, $ignore, $flags);
   }
   else
   {
@@ -797,5 +929,18 @@ function mrbs_ldap_bind ($link_identifier, $bind_rdn=null, $bind_password=null)
     }
   }
  
+  return $result;
+}
+
+
+// Adds extra diagnostic information to ldap_error()
+function mrbs_ldap_error($link_identifier)
+{
+  $result = ldap_error($link_identifier);
+  if (ldap_get_option($link_identifier, LDAP_OPT_DIAGNOSTIC_MESSAGE, $err) &&
+      isset($err) && ($err !== ''))
+  {
+    $result .= " [$err]";
+  }
   return $result;
 }

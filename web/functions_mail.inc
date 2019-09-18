@@ -420,11 +420,12 @@ function create_body($data, $mail_previous, $compare, $series, $action, $as_html
     $body .= "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=" . get_mail_charset() . "\">\n";
     $body .= "<title>$mrbs_company</title>\n";
     $body .= "<style type=\"text/css\">\n";
-    $css_file = 'css/mrbs-mail.css';
-    if (is_readable($css_file))
+    $css_file = 'css/mrbs-mail.css.php';
+    if (is_file($css_file) && is_readable($css_file))
     {
-      $fh = fopen($css_file, 'r');
-      $css = fread($fh, filesize($css_file));
+      ob_start();
+      include $css_file;
+      $css = ob_get_clean();
       $css = preg_replace('!/\*.*?\*/!s', '', $css);  // Remove comments
       $css = preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", "\n", $css);  // Remove blank lines
       $body .= $css;
