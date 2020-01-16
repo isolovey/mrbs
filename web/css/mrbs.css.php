@@ -1,4 +1,4 @@
-<?php 
+<?php
 namespace MRBS;
 
 require_once "../systemdefaults.inc.php";
@@ -8,13 +8,13 @@ require_once "../theme.inc";
 
 http_headers(array("Content-type: text/css"),
              60*30);  // 30 minute cache expiry
-                                
+
 // IMPORTANT *************************************************************************************************
 // In order to avoid problems in locales where the decimal point is represented as a comma, it is important to
 //   (1) specify all PHP length variables as strings, eg $border_width = '1.5'; and not $border_width = 1.5;
 //   (2) convert PHP variables after arithmetic using number_format
 // ***********************************************************************************************************
-                                
+
 ?>
 
 
@@ -53,7 +53,7 @@ body {
 .warning {
   color: <?php echo $highlight_font_color ?>;  <?php // for warning messages ?>
 }
-              
+
 .note {
   font-style: italic;
 }
@@ -198,16 +198,69 @@ a:hover {
   color: <?php echo $anchor_hover_color ?>;
   text-decoration: underline;
   font-weight: bold;
-} 
+}
 
-tr:nth-child(odd) td.new {
+tr:nth-child(odd) td.new,
+.all_rooms tr:nth-child(odd) td {
   background-color: <?php echo $row_odd_color ?>;
 }
 
-tr:nth-child(even) td.new {
+tr:nth-child(even) td.new,
+.all_rooms tr:nth-child(even) td {
   background-color: <?php echo $row_even_color ?>;
 }
 
+.all_rooms td {
+  height: 100%; <?php // for Firefox ?>
+}
+
+.dwm_main.all_rooms td a {
+  display: flex;
+  height: 100%;
+  padding: 0;
+}
+
+<?php
+/* We use border-box sizing to keep the border inside the div therefore allow the div to
+ * be as thin as 1px (useful if there are lots of slots as it saves screen space).  But as
+ * the border would then obscure the background colour, we make the border dotted to allow
+ * the background colour to show through.  Note however that box-sizing doesn't work quite
+ * properly with flexbox - the sizing calculations are a bit out - but it's probably good
+ * enough.
+ *
+ * 'width: 0' is essential to keep the table columns equal width when there's a lot of
+ * text in the bookings.
+ */
+?>
+.all_rooms td a div {
+  box-sizing: border-box;
+  min-width: 1px;
+  width: 0;
+  border-right: 1px dotted  <?php echo $main_table_body_v_border_color ?>;
+  white-space: nowrap;
+  overflow: hidden;
+  padding: 0.2em 0;
+}
+
+<?php
+/* We can't use padding-left because that would add a fixed amount of width
+ * to every div, thus distorting their relative widths.  So add a non-breaking
+ * space before, which will just be treated in the same way as the rest of the
+ * text.
+ */
+ ?>
+.all_rooms td a div:not(.free)::before {
+  content: '\00a0';
+}
+
+.all_rooms td a:hover {
+  text-decoration: none;
+}
+
+.all_rooms td a div:last-child,
+.all_rooms td a div.free {
+  border-right: 0;
+}
 
 td, th {
   vertical-align: top;
@@ -249,7 +302,7 @@ fieldset fieldset {
 
 fieldset fieldset legend {
   font-size: 0;  <?php // for IE: even if there is no legend text, IE allocates space ?>
-}      
+}
 
 label:not(.link)::after,
 label.link a::after,
@@ -324,7 +377,7 @@ table.dataTable thead th:first-child, table.dataTable thead td:first-child {
 table.dataTable thead .sorting,
 table.dataTable thead .sorting_asc,
 table.dataTable thead .sorting_desc {
-  color: <?php echo $admin_table_header_font_color ?>; 
+  color: <?php echo $admin_table_header_font_color ?>;
   background-color: <?php echo $admin_table_header_back_color ?>;
 }
 
@@ -513,7 +566,7 @@ div#div_custom_html {
 
 #area_form form {
   width: 100%;
-  float: left; 
+  float: left;
   margin-right: 1em
 }
 
@@ -527,7 +580,7 @@ div#div_custom_html {
 .areaChangeForm div {
   float: left;
 }
-  
+
 .roomChangeForm select, .areaChangeForm select {
   font-size: larger;
 }
@@ -617,7 +670,7 @@ div.timeline.times_along_top {
 
 table.dwm_main {
   float: left;
-  clear: both; 
+  clear: both;
   width: 100%;
   height: 100%;
   margin: 1em 0;
@@ -632,6 +685,10 @@ table.dwm_main {
 .dwm_main th, .dwm_main td {
   min-height: <?php echo $main_cell_height ?>;
   line-height: <?php echo $main_cell_height ?>;
+}
+
+.dwm_main tbody th {
+  text-align: left;
 }
 
 .dwm_main td {
@@ -701,7 +758,7 @@ table.dwm_main {
   font-weight: normal;
   vertical-align: top;
   padding: 0.2em;
-  color: <?php echo $standard_font_color ?>; 
+  color: <?php echo $standard_font_color ?>;
   background-color: #ffffff;
   background-clip: padding-box; <?php // to keep Edge happy when using position: sticky ?>
   border-left: <?php echo $main_table_cell_border_width ?>px solid <?php echo $main_table_header_border_color ?>;
@@ -757,7 +814,7 @@ table.dwm_main {
 }
 
 
-.dwm_main a, 
+.dwm_main a,
 .dwm_main .booked span.saving {
   display: block;
   height: 100%;
@@ -783,7 +840,7 @@ table.dwm_main {
   box-sizing: content-box;
 }
 
-<?php 
+<?php
 // Catch IE10 and IE11 only
 // IE10 and IE11 don't support position: relative on the <td> so we have to do it on
 // the wrapper.  The downside is that when resizing to make the booking larger the
@@ -813,6 +870,10 @@ table.dwm_main {
 
 .dwm_main .booked a {
   box-sizing: border-box;
+}
+
+.dwm_main .booked a,
+.all_rooms td a div:not(.free) {
   border-bottom: 1px solid <?php echo $main_table_body_v_border_color ?>;
 }
 
@@ -844,7 +905,7 @@ table.dwm_main {
   from {
     opacity: 0;
   }
-  
+
   50% {
     opacity: 1;
   }
@@ -891,7 +952,7 @@ table.dwm_main {
   background-color: <?php echo $main_table_slot_invalid_color ?>;
 }
 
-.dwm_main#month_main tbody tr:not(:first-child) td {
+.dwm_main#month_main:not(.all_rooms) tbody tr:not(:first-child) td {
   border-top:  <?php echo $main_table_cell_border_width ?>px solid <?php echo $main_table_body_v_border_color ?>;
 }
 
@@ -903,7 +964,7 @@ table.dwm_main {
   background-color: <?php echo $main_table_month_invalid_color ?>;
 }
 
-.dwm_main#month_main a {
+.dwm_main#month_main:not(.all_rooms) a {
   height: 100%;
   width: 100%;
   padding: 0 2px 0 2px;
@@ -936,7 +997,7 @@ td.new img, .new_booking img {
 
 <?php
 // The following section deals with the contents of the table cells in the month view.    It is designed
-// to ensure that the new booking link is active anywhere in the cell that there isn't another link, for 
+// to ensure that the new booking link is active anywhere in the cell that there isn't another link, for
 // example the link to the day in question at the top left and the bookings themselves.   It works by using
 // z-index levels and placing the new booking link at the bottom of the pile.
 //
@@ -945,7 +1006,7 @@ td.new img, .new_booking img {
 // This is because the list of bookings is in a div of its own which includes that bottom right hand corner.   One
 // could do without the container div, and then you could solve the problem, but the container div is there to
 // allow the bookings to scroll without moving the date and new booking space at the top of the cell.   Putting up
-// with the small gap at the end of odd rows is probably a small price worth paying to ensure that the date and the 
+// with the small gap at the end of odd rows is probably a small price worth paying to ensure that the date and the
 // new booking link remain visible when you scroll.]
 ?>
 
@@ -953,17 +1014,17 @@ td.new img, .new_booking img {
 div.cell_container {
   position: relative;
   float: left;
-  width: 100%;        
+  width: 100%;
   <?php echo ($month_cell_scrolling ? 'height:' : 'min-height:') ?> 100px;
 }
-                                                                         
+
 #month_main a.new_booking {
   position: absolute;
   top: 0;
   left: 0;
   z-index: 10;  <?php // needs to be above the base, but below the date (monthday) ?>
 }
-       
+
 div.cell_header {
   position: relative;
   width: 100%;
@@ -980,7 +1041,7 @@ div.cell_header {
   float: left;
 }
 
-<?php // the date in the top left corner ?>                                                                           
+<?php // the date in the top left corner ?>
 #month_main div.cell_header a.monthday {
   font-size: medium;
 }
@@ -995,7 +1056,7 @@ div.booking_list {
   position: relative;
   z-index: 20;  <?php // needs to be above new_booking ?>
   max-height: 80%;
-  font-size: x-small;                                
+  font-size: x-small;
   overflow: <?php echo ($month_cell_scrolling ? 'auto' : 'visible') ?>;
 }
 
@@ -1055,7 +1116,7 @@ foreach ($color_types as $type => $col)
   top: 0;
 }
 
-<?php // hidden columns (eg weekends) in the week and month views ?> 
+<?php // hidden columns (eg weekends) in the week and month views ?>
 .hidden_day {
   display: none;
 }
@@ -1070,7 +1131,7 @@ tr.row_highlight td.new {
   background-color: <?php echo $row_highlight_color ?>;
 }
 
-tbody th {
+th {
   white-space: nowrap;
   vertical-align: middle;
 }
@@ -1205,7 +1266,7 @@ div.div_select {
 
 div.div_select.outside {
   background-color: transparent;
-}   
+}
 
 
 /* ------------ DEL.PHP -----------------------------*/
@@ -1674,10 +1735,10 @@ form#show_my_entries input.link[type="submit"] {
 <?php
 // THE COLOR KEY
 //
-// Displays as a grid for those browsers that support it, falling back to a flexbox.  The 
+// Displays as a grid for those browsers that support it, falling back to a flexbox.  The
 // differences between the two levels of support are:
 //
-//  Grid:             If there is some spare space, the divs expand so that the grid rows 
+//  Grid:             If there is some spare space, the divs expand so that the grid rows
 //                    nicely fill 100% of the container width.
 //  Flexbox:          As Grid, but the divs are of fixed width and won't expand, but will
 // (IE10 and IE11)    wrap onto the next row.
