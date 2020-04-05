@@ -79,7 +79,7 @@ function output_row($row, $returl)
   $html_name = htmlspecialchars($row['name']);
   $values[] = "<a title=\"$html_name\" href=\"view_entry.php?" . htmlspecialchars($query) . "\">$html_name</a>";
   // created by
-  $values[] = htmlspecialchars($row['create_by']);
+  $values[] = htmlspecialchars(get_compound_name($row['create_by']));
   // start time and link to day view
   $date = getdate($row['start_time']);
 
@@ -155,7 +155,7 @@ if (isset($search_str) && ($search_str !== ''))
 // Check the user is authorised for this page
 checkAuthorised(this_page());
 
-$user = getUserName();
+$user = session()->getUsername();
 
 // Set up for Ajax.   We need to know whether we're capable of dealing with Ajax
 // requests, which will only be if the browser is using DataTables.  We also need
