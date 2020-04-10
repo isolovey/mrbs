@@ -1,7 +1,7 @@
 <?php
 namespace MRBS;
 
-require_once MRBS_ROOT . '/auth/functions_auth.inc';
+
 
 define('LDAP_SUCCESS',                        0x00);
 define('LDAP_OPERATIONS_ERROR',               0x01);
@@ -349,30 +349,6 @@ function authLdapAction($callback, $user, &$object, $keep_going=false)
 }
 
 
-// Gets the user's email address.   Returns an empty
-// string if one can't be found
-function authGetUserEmail($user)
-{
-  global $ldap_get_user_email;
-  
-  if (!isset($user) || $user === '')
-  {
-    return '';
-  }
-  
-  if ($ldap_get_user_email)
-  {
-    $email = authLdapGetEmail($user);
-  }
-  else
-  {
-    $email = get_default_email($user);
-  }
-  
-  return $email;
-}
-
-
 /* authLdapGetEmail($user)
  * 
  * Gets the email address of the user from LDAP
@@ -629,172 +605,6 @@ function authLdapCheckAdminGroupCallback(&$ldap, $base_dn, $dn, $user_search,
   return false;
 }
 
-
-/* authGetUserLevel($user)
- *
- * Determines the users access level
- *
- * $user - The user name
- *
- * Returns:
- *   The users access level
- */
-function authGetUserLevel($user)
-{
-  global $ldap_admin_group_dn;
-  
-  // cache the user levels for performance
-  static $user_levels = array();
-  
-  // User not logged in, user level '0'
-  if (!isset($user))
-  {
-    return 0;
-  }
-  
-  if (isset($user_levels[$user]))
-  {
-    return $user_levels[$user];
-  }
-  
-  if ($ldap_admin_group_dn)
-  {
-    $object = array();
-    $res = authLdapAction("authLdapCheckAdminGroupCallback", $user, $object);
-    if ($res)
-    {
-      $level = 2;
-    }
-    else
-    {
-      $level = 1;
-    }
-  }
-  elseif (authLdapIsAdmin($user))
-  {
-    $level = 2;
-  }
-  else  // Everybody else is access level '1'
-  {
-    $level = 1;
-  }
-  
-  $user_levels[$user] = $level;
-  
-  return $user_levels[$user];
-}
-
-
-function authGetUsernames()
-{
-  return authLdapGetUsernames();
-}
-
-
-function authLdapGetUsernames()
-{
-  $object = array();
-  $object['users'] = array();
-  $users = array();
-  $user = getUserName();
-
-  $res = authLdapAction("authLdapGetUsernamesCallback", $user, $object, true);
-
-  if ($res === false)
-  {
-    return false;
-  }
-
-  if (isset($object['users']))
-  {
-    $users = $object['users'];
-  }
-
-  sort_users($users);
-  
-  return $users;
-}
-
-
-function authLdapGetUsernamesCallback(&$ldap, $base_dn, $dn, $user_search,
-                                      $user, &$object)
-{
-  authLdapDebug("base_dn '$base_dn'");
-  
-  if (!$ldap || !$base_dn || !isset($object['config']['ldap_user_attrib']))
-  {
-    authLdapDebug("invalid parameters, could not call ldap_search, returning false");
-    return false;
-  }
-
-  if (isset($object['config']['ldap_filter']))
-  {
-    $filter = $object['config']['ldap_filter'];
-  }
-  else
-  {
-    $filter = 'objectclass=*';
-  }
-  $filter = "($filter)";
-
-  // Form the attributes
-  $username_attrib = utf8_strtolower($object['config']['ldap_user_attrib']);
-  $attributes = array($username_attrib);
-
-  // The display name attribute might not have been set in the config file
-  if (isset($object['config']['ldap_name_attrib']))
-  {
-    $display_name_attrib = utf8_strtolower($object['config']['ldap_name_attrib']);
-    $attributes[] = $display_name_attrib;
-  }
-
-  authLdapDebug("searching with base_dn '$base_dn' and filter '$filter'");
-
-  $res = ldap_search($ldap, $base_dn, $filter, $attributes);
-
-  if ($res == false)
-  {
-    authLdapDebug("ldap_search failed: " . mrbs_ldap_error($ldap));
-    return false;
-  }
-
-  authLdapDebug(ldap_count_entries($ldap, $res) . " entries found");
-
-  $entry = ldap_first_entry($ldap, $res);
-
-  // Loop through the entries to get all the users
-  while ($entry)
-  {
-    // Initialise all keys in the user array to NULL, in case an attribute isn't present
-    $user = array('username' => null,
-                  'display_name' => null);
-
-    $attribute = ldap_first_attribute($ldap, $entry);
-
-    // Loop through all the attributes for this user
-    while ($attribute)
-    {
-      $values = ldap_get_values($ldap, $entry, $attribute);
-      $attribute = utf8_strtolower($attribute);  // ready for the comparisons
-
-      if ($attribute == $username_attrib)
-      {
-        $user['username'] = $values[0];
-      }
-      elseif ($attribute == $display_name_attrib)
-      {
-        $user['display_name'] = $values[0];
-      }
-
-      $attribute = ldap_next_attribute($ldap, $entry);
-    }
-
-    $object['users'][] = $user;
-    $entry = ldap_next_entry($ldap, $entry);
-  }
-
-  return true;
-}
 
 
 
