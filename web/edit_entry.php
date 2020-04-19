@@ -197,9 +197,9 @@ function get_field_entry_input($params)
 
 function get_field_create_by($create_by, $disabled=false)
 {
-  if (function_exists(__NAMESPACE__ . "\\authGetUsernames"))
+  if (method_exists(auth(), 'getUsernames'))
   {
-    $users = authGetUsernames();
+    $users = auth()->getUsernames();
   }
 
   if (!empty($users))
@@ -1185,7 +1185,7 @@ if (!isset($returl))
 // Check the user is authorised for this page
 checkAuthorised(this_page());
 
-$current_username = getUserName();
+$current_username = session()->getCurrentUser()->username;
 
 // You're only allowed to make repeat bookings if you're an admin
 // or else if $auth['only_admin_can_book_repeat'] is not set
