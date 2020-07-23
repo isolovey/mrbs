@@ -837,6 +837,14 @@ function mrbsCreateEntry($table, $data)
     {
       switch ($key)
       {
+        // booleans
+        case 'allow_registration':
+        case 'enable_registrant_limit':
+          $sql_col[] = $key;
+          $sql_val[] = '?';
+          $sql_params[] = (empty($data[$key])) ? 0 : 1;
+          break;
+
         // integers
         case 'start_time':
         case 'end_time':
@@ -847,7 +855,8 @@ function mrbsCreateEntry($table, $data)
         case 'end_date':
         case 'room_id':
         case 'status':
-        case 'ical_sequence':
+        case 'ical_sequence';
+        case 'registrant_limit';
           $sql_col[] = $key;
           $sql_val[] = '?';
           $sql_params[] = (isset($data[$key])) ? (int)$data[$key] : null;
@@ -1410,6 +1419,23 @@ function mrbsApproveEntry($id, $series)
 }
 
 
+// Get the number of people registered for an event
+function get_registrants($id, $series)
+{
+  // You can't register for a series (yet)
+  if ($series)
+  {
+    return null;
+  }
+
+  $sql = "SELECT username
+            FROM " . _tbl('participants') . "
+           WHERE entry_id=:entry_id";
+
+  return db()->query_array($sql, array(':entry_id' => $id));
+}
+
+
 // get_booking_info($id, $series)
 //
 // Gets all the details for a booking with $id, which is in the
@@ -1464,6 +1490,9 @@ function get_booking_info($id, $series, $silent=FALSE)
       case 'entry_type':
       case 'repeat_id':
       case 'ical_recur_id':
+      case 'allow_registration':
+      case 'enable_registrant_limit':
+      case 'registrant_limit':
         array_push($terms, $field['name']);
         break;
 
@@ -1554,6 +1583,8 @@ function get_booking_info($id, $series, $silent=FALSE)
   unpack_status($row);
 
   // Get some extra information
+  $row['registrants'] = get_registrants($id, $series);
+
   if ($series)
   {
     $row['entry_info_time'] = '';

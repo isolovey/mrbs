@@ -1583,7 +1583,9 @@ fieldset.rep_type_details fieldset {
   clear: none;
 }
 
-fieldset#rep_info, fieldset#booking_controls {
+fieldset#registration,
+fieldset#rep_info,
+fieldset#booking_controls {
   border-top: 1px solid <?php echo $site_faq_entry_border_color ?>;
   border-radius: 0;
   padding-top: 0.7em;
@@ -2203,10 +2205,16 @@ div#site_faq_body {
 
 /* ------------ VIEW_ENTRY.PHP ------------------*/
 
-.view_entry #entry td:first-child {
+.view_entry #entry td:first-child,
+.view_entry #registration td:first-child {
   text-align: right;
   font-weight: bold;
   padding-right: 1.0em;
+}
+
+.view_entry #entry,
+.view_entry #registration {
+  padding-left: 1em;
 }
 
 .view_entry div#view_entry_nav {
