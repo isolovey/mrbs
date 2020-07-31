@@ -1125,15 +1125,25 @@ if ($clipped_month)
 
 <?php
 // Generate the classes to give the colour coding by booking type in the day/week/month views
+// Don't go for hard stops on the linear gradient because it doesn't do anti-aliasing.  Instead leave
+// a pixel gap to allow the linear gradient to do some blurring.  (Unfortunately calc() doesn't
+// work with linear-gradient in IE11).
 foreach ($color_types as $type => $col)
 {
-  echo ".$type {background-color: $col}\n";
+  echo ".$type {background: $col}\n";
+  echo ".full.$type {background: linear-gradient(to right bottom, $col calc(50% - 1.5px), $row_even_color calc(50% - 0.5px) calc(50% + 0.5px), $col calc(50% + 1.5px))}\n";
+  echo ".spaces.$type {background: linear-gradient(to right bottom, $row_even_color calc(50% - 0.5px), $col calc(50% + 0.5px))}\n";
 }
 
 ?>
 
+.full a,
+.spaces a {
+  background: transparent;
+}
+
 .private_type {
-  background-color: <?php echo $main_table_slot_private_type_color;?>;
+  background: <?php echo $main_table_slot_private_type_color;?>;
 }
 
 .dwm_main thead th,
@@ -1583,7 +1593,9 @@ fieldset.rep_type_details fieldset {
   clear: none;
 }
 
-fieldset#rep_info, fieldset#booking_controls {
+fieldset#registration,
+fieldset#rep_info,
+fieldset#booking_controls {
   border-top: 1px solid <?php echo $site_faq_entry_border_color ?>;
   border-radius: 0;
   padding-top: 0.7em;
@@ -2203,10 +2215,44 @@ div#site_faq_body {
 
 /* ------------ VIEW_ENTRY.PHP ------------------*/
 
-.view_entry #entry td:first-child {
+.view_entry #entry td:first-child,
+.view_entry #registration .list td:first-child {
   text-align: right;
   font-weight: bold;
   padding-right: 1.0em;
+}
+
+.view_entry #entry,
+.view_entry #registration {
+  padding-left: 1em;
+}
+
+.view_entry #registration p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.view_entry #registration table {
+  margin-bottom: 1em;
+}
+
+.view_entry #registration input[type="submit"] {
+  margin-top: 1em;
+}
+
+.view_entry #registrants {
+  padding-left: 1em;
+}
+
+.view_entry #registrants tbody {
+  display: block;
+  max-height: 12em;
+  overflow-y: auto;
+}
+
+.view_entry h4 {
+  margin-top: 2em;
+  margin-bottom: 1em;
 }
 
 .view_entry div#view_entry_nav {
