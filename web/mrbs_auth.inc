@@ -94,6 +94,7 @@ function get_page_level($page)
     case 'edit_room.php':               // Ordinary users can view room details
     case 'edit_users.php':              // Ordinary users can edit their own details
     case 'pending.php':                 // Ordinary users can view their own entries
+    case 'registration_handler.php':    // Ordinary users can register for an event
       $result = 1;
       break;
 
