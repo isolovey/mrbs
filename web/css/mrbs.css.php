@@ -2237,6 +2237,19 @@ div#site_faq_body {
 }
 
 
+/* ----------------- ROLES ------------------*/
+
+table#roles {
+  clear: left;
+}
+
+#roles th,
+#roles td {
+  vertical-align: middle;
+  padding: 0.4em 0.8em;
+}
+
+
 /* ------------ VIEW_ENTRY.PHP ------------------*/
 
 .view_entry #entry td:first-child,
