@@ -200,9 +200,9 @@ $vocab["none_outstanding"]   = "承認待ちの仮予約はありません。";
 $vocab["accessdenied"]       = "アクセスが拒否されました";
 $vocab["norights"]           = "このページを表示するために必要な権限がありません。";
 $vocab["please_login"]       = "ログインしてください";
-$vocab["users.name"]          = "名前";
-$vocab["users.password"]      = "パスワード";
-$vocab["users.level"]         = "権限";
+$vocab["user.name"]          = "名前";
+$vocab["user.password"]      = "パスワード";
+$vocab["user.level"]         = "権限";
 $vocab["unknown_user"]       = "未知のユーザ";
 $vocab["login"]              = "ログイン";
 $vocab["logoff"]             = "ログオフ";
@@ -227,9 +227,9 @@ $vocab["level_3"]            = "ユーザ, 管理者";
 $vocab["user_list"]          = "ユーザリスト";
 $vocab["edit_user"]          = "ユーザを編集";
 $vocab["delete_user"]        = "このユーザを削除";
-//$vocab["users.name"]         = Use the same as above, for consistency.
-//$vocab["users.password"]     = Use the same as above, for consistency.
-$vocab["users.email"]         = "Eメールアドレス";
+//$vocab["user.name"]         = Use the same as above, for consistency.
+//$vocab["user.password"]     = Use the same as above, for consistency.
+$vocab["user.email"]         = "Eメールアドレス";
 $vocab["password_twice"]     = "パスワードを変更したい場合は、新しいパスワードを2回入力してください";
 $vocab["passwords_not_eq"]   = "パスワードが一致しませんでした!";
 $vocab["password_invalid"]   = "パスワードが指針を満たしていません。少なくとも以下の文字を含む必要があります:";
@@ -395,7 +395,7 @@ $vocab["disabled_room_note"]      = "この部屋が無効になっている場�
                                     "検索や報告の結果には表示されます。" .
 $vocab["book_ahead_note_periods"] = "期間を使用すると、この先の予約は最も近い週日で丸められます。";
 
-// Used in edit_users.php
+// Used in edit_user.php
 $vocab["name_empty"]         = "名前を入力する必要があります。";
 $vocab["name_not_unique"]    = "既に存在します。別の名前を入力して下さい。";
 
