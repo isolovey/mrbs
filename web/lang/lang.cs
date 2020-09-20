@@ -213,9 +213,9 @@ $vocab["none_outstanding"]   = "Žádné vaše rezervace nečekají na schválen
 $vocab["accessdenied"]       = "Přístup zamítnut";
 $vocab["norights"]           = "Nemáte přístupové právo pro změnu této položky.";
 $vocab["please_login"]       = "Prosím, přihlašte se";
-$vocab["users.name"]         = "Jméno";
-$vocab["users.password"]     = "Heslo";
-$vocab["users.level"]        = "Práva";
+$vocab["user.name"]         = "Jméno";
+$vocab["user.password"]     = "Heslo";
+$vocab["user.level"]        = "Práva";
 $vocab["unknown_user"]       = "Neznámý uživatel";
 $vocab["login"]              = "Přihlásit se";
 $vocab["logoff"]             = "Odhlásit se";
@@ -240,9 +240,9 @@ $vocab["level_3"]            = "administrátor uživatelů";
 $vocab["user_list"]          = "Seznam uživatelů";
 $vocab["edit_user"]          = "Editovat uživatele";
 $vocab["delete_user"]        = "Smazat tohoto uživatele";
-//$vocab["users.name"]         = Use the same as above, for consistency.
-//$vocab["users.password"]     = Use the same as above, for consistency.
-$vocab["users.email"]        = "E-mailová adresa";
+//$vocab["user.name"]         = Use the same as above, for consistency.
+//$vocab["user.password"]     = Use the same as above, for consistency.
+$vocab["user.email"]        = "E-mailová adresa";
 $vocab["password_twice"]     = "Pokud chcete změnit heslo, prosím napište ho dvakrát";
 $vocab["passwords_not_eq"]   = "Chyba: Vložená hesla se neshodují.";
 $vocab["password_invalid"]   = "Heslo nesplňuje bezpečnostní požadavky. Musí obsahovat alespoň:";
@@ -409,7 +409,7 @@ $vocab["disabled_room_note"]      = "Tato místnost je zakázána, nezobrazí se
                                     "budou zachovány a zůstanou viditelné ve výsledích hledání a ve výpisech.";
 $vocab["book_ahead_note_periods"] = "Při použití období je rezervace zaokrouhlena dolů na nejbližší celý den.";
 
-// Used in edit_users.php
+// Used in edit_user.php
 $vocab["name_empty"]         = "Musíte vložit jméno.";
 $vocab["name_not_unique"]    = "již existuje. Prosím vyberte jiné jméno.";
 

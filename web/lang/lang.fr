@@ -277,9 +277,9 @@ $vocab["level_3"]            = "user admin";
 $vocab["user_list"]          = "Liste des utilisateurs";
 $vocab["edit_user"]          = "Modification de l'utilisateur";
 $vocab["delete_user"]        = "Supprimer cet utilisateur";
-//$vocab["users.name"]         = Use the same as above, for consistency.
-//$vocab["users.password"]     = Use the same as above, for consistency.
-$vocab["users.email"]         = "Adresse courriel";
+//$vocab["user.name"]         = Use the same as above, for consistency.
+//$vocab["user.password"]     = Use the same as above, for consistency.
+$vocab["user.email"]         = "Adresse courriel";
 $vocab["password_twice"]     = "Pour modifier le mot de passe, tapez le nouveau mot de passe ici deux fois";
 $vocab["passwords_not_eq"]   = "Erreur&nbsp;: Les mots de passe ne sont pas identiques.";
 $vocab["password_invalid"]   = "Le mot de passe n'est pas conforme au format. Il doit contenir au moins :";
@@ -467,7 +467,7 @@ $vocab["disabled_room_note"]      = "Si cette salle est désactivée, elle n'app
                                     "seront conservées et visibles dans les résultats de recherche et les rapports.";
 $vocab["book_ahead_note_periods"] = "Lors de l'utilisation de périodes, les heures de réservation sont arrondies au jour entier le plus bas inférieur.";
 
-// Used in edit_users.php
+// Used in edit_user.php
 $vocab["name_empty"]         = "Vous devez entrer un nom.";
 $vocab["name_not_unique"]    = "existe déjà. Choissez un autre nom.";
 
