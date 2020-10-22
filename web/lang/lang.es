@@ -231,11 +231,11 @@ $vocab["none_outstanding"]   = "Usted no tiene reservas en espera de ser aprobad
 $vocab["accessdenied"]       = "Acceso denegado";
 $vocab["norights"]           = "No tiene autorización para modificar este dato.";
 $vocab["please_login"]       = "Introduzca su Nombre de Usuario";
-$vocab["users.name"]         = "Nombre";
-$vocab["users.password"]     = "Contraseña";
-$vocab["users.level"]        = "Privilegios";
-$vocab["users.timestamp"]    = "Última actualización";
-$vocab["users.last_login"]   = "Último acceso";
+$vocab["user.name"]         = "Nombre";
+$vocab["user.password"]     = "Contraseña";
+$vocab["user.level"]        = "Privilegios";
+$vocab["user.timestamp"]    = "Última actualización";
+$vocab["user.last_login"]   = "Último acceso";
 $vocab["unknown_user"]       = "Usuario anónimo";
 $vocab["login"]              = "Entrar";
 $vocab["logoff"]             = "Salir";
@@ -261,9 +261,9 @@ $vocab["level_3"]            = "usuario Administrador";
 $vocab["user_list"]          = "Lista de usuarios";
 $vocab["edit_user"]          = "Modificar usuario";
 $vocab["delete_user"]        = "Eliminar este usuario";
-//$vocab["users.name"]       = Use the same as above, for consistency.
-//$vocab["users.password"]   = Use the same as above, for consistency.
-$vocab["users.email"]        = "Dirección de correo electrónico";
+//$vocab["user.name"]       = Use the same as above, for consistency.
+//$vocab["user.password"]   = Use the same as above, for consistency.
+$vocab["user.email"]        = "Dirección de correo electrónico";
 $vocab["password_twice"]     = "Si quiere cambiar la contraseña, por favor escriba la nueva dos veces";
 $vocab["passwords_not_eq"]   = "Error: Las contraseñas no son iguales.";
 $vocab["password_invalid"]   = "La contraseña no cumple los requisitos.  Debe contener, al menos:";
@@ -442,7 +442,7 @@ $vocab["disabled_room_note"]      = "Si esta Sala está deshabilitada, no aparec
                                     "serán respetadas y por ello serán visibles en los resultados de Búsqueda e Informes.";
 $vocab["book_ahead_note_periods"] = "Cuando se usan periodos, las horas de reservas futuras se redondearán al día completo más cercano  .";
 
-// Used in edit_users.php
+// Used in edit_user.php
 $vocab["name_empty"]              = "Se debe introducir un nombre.";
 $vocab["name_not_unique"]         = "ya existe.  Por favor, elija otro nombre.";
 
