@@ -196,9 +196,9 @@ $vocab["none_outstanding"]   = "Nie ma rezerwacji oczekujących na zatwierdzenie
 $vocab["accessdenied"]       = "Dostęp Wzbroniony";
 $vocab["norights"]           = "Nie masz uprawnień do zmiany tego obiektu.";
 $vocab["please_login"]       = "Proszę, zaloguj się";
-$vocab["users.name"]          = "Nazwa";
-$vocab["users.password"]      = "Hasło";
-$vocab["users.level"]         = "Uprawnienia";
+$vocab["user.name"]          = "Nazwa";
+$vocab["user.password"]      = "Hasło";
+$vocab["user.level"]         = "Uprawnienia";
 $vocab["unknown_user"]       = "Nieznany użytkownik";
 $vocab["login"]              = "Zaloguj";
 $vocab["logoff"]             = "Wyloguj";
@@ -223,9 +223,9 @@ $vocab["level_3"]            = "User admin";
 $vocab["user_list"]          = "Lista użytkowników";
 $vocab["edit_user"]          = "Edytuj";
 $vocab["delete_user"]        = "Usuń";
-//$vocab["users.name"]         = Use the same as above, for consistency.
-//$vocab["users.password"]     = Use the same as above, for consistency.
-$vocab["users.email"]         = "adres email";
+//$vocab["user.name"]         = Use the same as above, for consistency.
+//$vocab["user.password"]     = Use the same as above, for consistency.
+$vocab["user.email"]         = "adres email";
 $vocab["password_twice"]     = "Jeśli chcesz zmienić hasło, wpisz dwukrotnie nowe hasło";
 $vocab["passwords_not_eq"]   = "Błąd! Powtórzone hasła różnią się";
 $vocab["add_new_user"]       = "Dodaj nowego użytkownika";
@@ -395,7 +395,7 @@ $vocab["disabled_room_note"]      = "Jeśli to pomieszczenie jest wyłączone, n
                                     "zostaną zachowane i będą widoczne w wynikach wyszukiwania i raporcie.";
 $vocab["book_ahead_note_periods"] = "Podczas korzystania z okresów, czasy rezerwacji z wyprzedzeniem są zaokrąglane w dół do najbliższego pełnego dnia.";
 
-// Uzyte w edit_users.php
+// Uzyte w edit_user.php
 $vocab["name_empty"]         = "Musisz podać nazwę.";
 $vocab["name_not_unique"]    = "Nazwa aktualnie istnieje.  Prosze wybrać inną.";
 
