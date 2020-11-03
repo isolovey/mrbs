@@ -449,11 +449,11 @@ function mrbsCheckPolicy(array $booking, $ignore, $repignore, $delete=FALSE)
     // Check whether this booking type is allowed in this room
     if ($prevent_invalid_types)
     {
-      $room_details = get_room_details($booking['room_id']);
-      if (isset($room_details['invalid_types']) &&
-          in_array($booking['type'], $room_details['invalid_types']))
+      $room = Room::getById($booking['room_id']);
+      if (isset($room->invalid_types) &&
+          in_array($booking['type'], $room->invalid_types))
       {
-        $violations[] = get_vocab('type_not_allowed', get_type_vocab($booking['type']), $room_details['room_name']);
+        $violations[] = get_vocab('type_not_allowed', get_type_vocab($booking['type']), $room->room_name);
       }
     }
 
@@ -669,7 +669,7 @@ function get_entries_by_area($area_id, $interval_start, $interval_end)
   $sql = "SELECT E.*, COUNT(P.entry_id) AS n_registered
             FROM " . _tbl('entry') . " E
        LEFT JOIN " . _tbl('room') . " R ON E.room_id = R.id
-       LEFT JOIN " . _tbl('participants') . " P ON P.entry_id = E.id
+       LEFT JOIN " . _tbl('participant') . " P ON P.entry_id = E.id
            WHERE R.area_id = ?
              AND R.disabled = 0
              AND start_time < ? AND end_time > ?
@@ -699,7 +699,7 @@ function get_entries_by_room($room_id, $interval_start, $interval_end)
   // The GROUP BY is necessary to get n_registered to work
   $sql = "SELECT E.*, COUNT(P.entry_id) AS n_registered
             FROM " . _tbl('entry') . " E
-       LEFT JOIN " . _tbl('participants') . " P ON P.entry_id = E.id
+       LEFT JOIN " . _tbl('participant') . " P ON P.entry_id = E.id
            WHERE room_id = ?
              AND start_time < ? AND end_time > ?
         GROUP BY E.id
@@ -1494,7 +1494,7 @@ function get_registration_by_id($id)
   }
 
   $sql = "SELECT *
-            FROM " . _tbl('participants') . "
+            FROM " . _tbl('participant') . "
            WHERE id=?
            LIMIT 1";
 
@@ -1523,7 +1523,7 @@ function get_registrants($id, $series)
   }
 
   $sql = "SELECT *
-            FROM " . _tbl('participants') . "
+            FROM " . _tbl('participant') . "
            WHERE entry_id=:entry_id";
 
   $res = db()->query($sql, array(':entry_id' => $id));
@@ -1537,7 +1537,7 @@ function series_has_registrants($repeat_id)
 {
   $sql = "SELECT COUNT(username)
             FROM " . _tbl('entry') . " E
-       LEFT JOIN " . _tbl('participants') . " P ON E.id=P.entry_id
+       LEFT JOIN " . _tbl('participant') . " P ON E.id=P.entry_id
            WHERE E.repeat_id=:repeat_id
            LIMIT 1";
 
@@ -1759,196 +1759,6 @@ function get_booking_info($id, $series, $silent=FALSE)
 }
 
 
-
-// Get the name of the area with id $id.   If $all is set to TRUE then all areas
-// are searched, otherwise just those which have not been disabled
-// Returns FALSE if there is an error, NULL if the id does not exist
-function get_area_name($id, $all=FALSE)
-{
-  $id = (int)$id;
-
-  $sql = "SELECT area_name
-            FROM " . _tbl('area') . "
-           WHERE id=?";
-  if (empty($all))
-  {
-    $sql .= " AND disabled=0";
-  }
-  $sql .= " LIMIT 1";
-
-  $res = db()->query($sql, array($id));
-
-  return ($res->count() == 0) ? null : $res->next_row()[0];
-}
-
-
-// Gets an array of area names indexed by area id.
-// If $all=TRUE then all areas are returned, otherwise just the ones that
-// are not disabled
-function get_area_names($all=FALSE)
-{
-  $areas = array();
-
-  $sql = "SELECT id, area_name FROM " . _tbl('area');
-  if (empty($all))
-  {
-    $sql .= " WHERE disabled=0";
-  }
-  $sql .= " ORDER BY sort_key";
-
-  $res = db()->query($sql);
-
-  while (false !== ($row = $res->next_row_keyed()))
-  {
-    $areas[$row['id']] = $row['area_name'];
-  }
-
-  return $areas;
-}
-
-
-// Get all the area details for $area_id.
-// Returns NULL if $area_id does not exist.
-function get_area_details($area_id)
-{
-  $sql = "SELECT *
-            FROM " . _tbl('area') . "
-           WHERE id=?
-           LIMIT 1";
-
-  $res = db()->query($sql, array($area_id));
-
-  return ($res->count() == 0) ? null : $res->next_row_keyed();
-}
-
-
-// Get the name of the room with id $room_id.   If $all is set to TRUE then all rooms
-// are searched, otherwise just those which have not been disabled
-// Returns NULL if the id does not exist
-function get_room_name($room_id, $all=FALSE)
-{
-  $room_id = (int)$room_id;
-
-  $sql = "SELECT room_name
-            FROM " . _tbl('room') . " R, " . _tbl('area') . " A
-           WHERE R.id=?
-             AND R.area_id=A.id";
-
-  if (empty($all))
-  {
-    $sql .= " AND R.disabled=0 AND A.disabled=0";
-  }
-  $sql .= " LIMIT 1";
-
-  $res = db()->query($sql, array($room_id));
-
-  return ($res->count() == 0) ? null : $res->next_row()[0];
-}
-
-
-// Gets an array of room names in an area indexed by room id.
-// If $all=TRUE then all areas are returned, otherwise just the ones that
-// are not disabled
-function get_room_names($area_id, $all=FALSE)
-{
-  $rooms = array();
-
-  $sql = "SELECT id, room_name
-            FROM " . _tbl('room') . "
-           WHERE area_id = :area_id";
-  if (empty($all))
-  {
-    $sql .= " AND disabled=0";
-  }
-  $sql .= " ORDER BY sort_key";
-
-  $res = db()->query($sql, array(':area_id' => $area_id));
-
-  while (false !== ($row = $res->next_row_keyed()))
-  {
-    if (is_visible($row['id']))
-    {
-      $rooms[$row['id']] = $row['room_name'];
-    }
-  }
-
-  return $rooms;
-}
-
-
-// Get all the room details for $room_id.
-// Returns FALSE on error, NULL if $room_id does not exist or is invisible.
-function get_room_details($room_id)
-{
-  if (!is_visible($room_id))
-  {
-    return null;
-  }
-
-  $sql = "SELECT *
-            FROM " . _tbl('room') . "
-           WHERE id=?
-           LIMIT 1";
-
-  $res = db()->query($sql, array($room_id));
-
-  $details = ($res->count() == 0) ? null : $res->next_row_keyed();
-
-  // The invalid types column is json_encoded
-  if (isset($details['invalid_types']))
-  {
-    $details['invalid_types'] = json_decode($details['invalid_types']);
-  }
-
-  return $details;
-}
-
-
-// Gets the rooms in an area
-// If $include_disabled is TRUE then all rooms are returned, whether or not they are disabled,
-// otherwise just the ones that are not disabled.
-// If $include_invisible is TRUE then all rooms are returned, whether or not they are visible,
-// otherwise just the ones that are visible to the current user.
-function get_rooms($area, $include_disabled=false, $include_invisible=false)
-{
-  $sql = "SELECT R.*
-            FROM " . _tbl('room') . " R, " . _tbl('area') . " A
-           WHERE R.area_id=?
-           AND R.area_id = A.id";
-
-  if (!($include_disabled))
-  {
-    $sql .= " AND R.disabled = 0" .
-            " AND A.disabled = 0";
-  }
-
-  // In early versions of MRBS the sort_key field didn't exist and this function
-  // is called before the database can be upgraded.
-  if (db()->field_exists(_tbl('room'), 'sort_key'))
-  {
-    $sql .= " ORDER BY R.sort_key";
-  }
-
-  $res = db()->query($sql, array($area));
-
-  $result = array();
-
-  while (false !== ($row = $res->next_row_keyed()))
-  {
-    if ($include_invisible || is_visible($row['id']))
-    {
-      if (isset($row['invalid_types']))
-      {
-        $row['invalid_types'] = json_decode($row['invalid_types']);
-      }
-      $result[] = $row;
-    }
-  }
-
-  return $result;
-}
-
-
 // Gets the ids of all the invisible rooms in the system
 function get_invisible_room_ids()
 {
@@ -2096,54 +1906,39 @@ function mrbsAddArea($name, &$error)
 
 // Adds a room, returning the new id, or FALSE on failure with the
 // error in $error
-function mrbsAddRoom($name, $area, &$error, $description='', $capacity='', $room_admin_email='')
+function mrbsAddRoom($name, $area_id, &$error, $description='', $capacity='', $room_admin_email='')
 {
   // First of all check that we've got a name
   if (!isset($name) || ($name === ''))
   {
-    $error = "empty_name";
-    return FALSE;
+    $error = 'empty_name';
+    return false;
   }
 
   // Truncate the name and description fields to the maximum length as a precaution.
   $name = utf8_substr($name, 0, maxlength('room.room_name'));
   $description = utf8_substr($description, 0, maxlength('room.description'));
 
-  if (empty($capacity))
-  {
-    $capacity = 0;
-  }
-  // Acquire a mutex to lock out others who might be editing rooms
-  if (!db()->mutex_lock(_tbl('room')))
-  {
-    fatal_error(get_vocab("failed_to_acquire"));
-  }
-  // Check that the room name is unique within the area
-  $sql = "SELECT COUNT(*)
-            FROM " . _tbl('room') . "
-           WHERE room_name=? AND area_id=?
-           LIMIT 1";
-  if (db()->query1($sql, array($name, $area)) > 0)
-  {
-    db()->mutex_unlock(_tbl('room'));
-    $error = "invalid_room_name";
-    return FALSE;
-  }
-  // If so, insert the room into the database
-  $sql = "INSERT INTO " . _tbl('room') . " (room_name, sort_key, area_id, description, capacity, room_admin_email)
-          VALUES (?, ?, ?, ?, ?, ?)";
-  db()->command($sql, array($name,$name,$area,$description,$capacity,$room_admin_email));
-  $room = db()->insert_id(_tbl('room'), 'id');
+  $room = new Room($name, $area_id);
 
-  // Release the mutex
-  db()->mutex_unlock(_tbl('room'));
-  return $room;
+  if ($room->exists())
+  {
+    $error = 'invalid_room_name';
+    return false;
+  }
+
+  $room->description = $description;
+  $room->capacity = (empty($capacity)) ? 0 : $capacity;
+  $room->room_admin_email = clean_address_list($room_admin_email);
+  $room->save();
+
+  return $room->id;
 }
 
 
 function update_participants($old_id, $new_id)
 {
-  $sql = "UPDATE " . _tbl('participants') . "
+  $sql = "UPDATE " . _tbl('participant') . "
              SET entry_id=:new_id
            WHERE entry_id=:old_id";
 
@@ -2487,7 +2282,7 @@ function mrbsMakeBookings(array $bookings, $id=NULL, $just_check=FALSE, $skip=FA
     {
       // Create the entry:
       $new_id = mrbsCreateSingleEntry($booking);
-      // Update the participants table
+      // Update the participant table
       if (isset($id))
       {
         update_participants($id, $new_id);
