@@ -552,7 +552,7 @@ $working_days = array(1,2,3,4,5);  // Mon-Fri
 
 // At the moment $select_options is only supported as follows:
 //     - Entry table: name, description and custom fields
-//     - Users table: custom fields
+//     - User table:  custom fields
 
 // For custom fields only (will be extended later) it is also possible to use
 // an associative array for $select_options, for example
@@ -614,7 +614,7 @@ $is_mandatory_field = array();
 // $is_mandatory_field['entry.type'] = true;
 // $is_mandatory_field['entry.terms_and_conditions'] = true;
 
-$is_mandatory_field['users.display_name'] = true;
+$is_mandatory_field['user.display_name'] = true;
 
 // Set this to false if you do not want to have the ability to create events for which
 // other people can register.
@@ -733,7 +733,7 @@ $auth["session_php"]["inactivity_expire_time"] = 0; // seconds
 // This list is not needed when using the 'db' authentication scheme EXCEPT
 // when upgrading from a pre-MRBS 1.4.2 system that used db authentication.
 // Pre-1.4.2 the 'db' authentication scheme did need this list.   When running
-// edit_users.php for the first time in a 1.4.2 system or later, with an existing
+// edit_user.php for the first time in a 1.4.2 system or later, with an existing
 // users list in the database, the system will automatically add a field to
 // the table for access rights and give admin rights to those users in the database
 // for whom admin rights are defined here.   After that this list is ignored.
@@ -764,7 +764,7 @@ $auth["prog"]   = "";
 $auth["params"] = "";
 
 // 'auth_db' configuration settings
-// The highest level of access (0=none; 1=user; 2+=admin).    Used in edit_users.php
+// The highest level of access (0=none; 1=user; 2+=admin).    Used in edit_user.php
 // In the future we might want a higher level of granularity, eg to distinguish between
 // different levels of admin
 $max_level = 2;
@@ -940,6 +940,8 @@ $ldap_email_attrib = 'mail';
 // The LDAP attribute which holds a user's name. Another common attribute
 // to use (with Active Directory) is 'displayname'.
 // This can be an array.
+// The name attribute can also be a composite attribute consisting of individual
+// LDAP attributes separated by spaces, eg 'givenName sn'.
 $ldap_name_attrib = 'cn';
 
 // The DN of the LDAP group that MRBS admins must be in. If this is defined
@@ -1247,7 +1249,7 @@ $mail_settings['admin_lang'] = 'en';   // Default is 'en'.
 // the room and area administrators are set though the edit_area.php and edit_room.php
 // pages in MRBS.  But if you have set $mail_settings['booker'] above to true, MRBS will
 // need the email addresses of ordinary users.   If you are using the "db"
-// authentication method then MRBS will be able to get them from the users table.  But
+// authentication method then MRBS will be able to get them from the user table.  But
 // if you are using any other authentication scheme then the following settings allow
 // you to specify a domain name that will be appended to the username to produce a
 // valid email address (eg "@domain.com").  MRBS will add the '@' character for you.
