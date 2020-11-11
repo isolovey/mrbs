@@ -311,9 +311,9 @@ $vocab["level_3"]            = "用户管理员";
 $vocab["user_list"]          = "用户清单";
 $vocab["edit_user"]          = "编辑用户";
 $vocab["delete_user"]        = "删除用户";
-//$vocab["users.name"]         = Use the same as above, for consistency.
-//$vocab["users.password"]     = Use the same as above, for consistency.
-$vocab["users.email"]         = "Email 地址";
+//$vocab["user.name"]         = Use the same as above, for consistency.
+//$vocab["user.password"]     = Use the same as above, for consistency.
+$vocab["user.email"]         = "Email 地址";
 $vocab["password_twice"]     = "如果你想修改密码, 请输入两次新密码";
 $vocab["passwords_not_eq"]   = "密码不匹配.";
 $vocab["password_invalid"]   = "密码不符合策略.  它必须包含至少:";
@@ -501,7 +501,7 @@ $vocab["book_ahead_note_periods"] = "当使用期间时, 预约前时间往下�
 $vocab["invalid_types"]           = "无效类型";
 $vocab["invalid_types_note"]      = "有些类型不允许在该房间中使用。";
 
-// Used in edit_users.php
+// Used in edit_user.php
 $vocab["name_empty"]         = "你必须输入一个名字.";
 $vocab["name_not_unique"]    = "已存在.   请选用另外一个名字.";
 

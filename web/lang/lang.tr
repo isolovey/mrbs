@@ -185,9 +185,9 @@ $vocab["none_outstanding"]   = "Onayınızı bekleyen kayıt yoktur";
 $vocab["accessdenied"]       = "Erişim Engellendi";
 $vocab["norights"]           = "Bunu değiştirecek giriş haklarınız yoktur.";
 $vocab["please_login"]       = "Lütfen girin";
-$vocab["users.name"]          = "Ad";
-$vocab["users.password"]      = "Şifre";
-$vocab["users.level"]         = "Haklar";
+$vocab["user.name"]          = "Ad";
+$vocab["user.password"]      = "Şifre";
+$vocab["user.level"]         = "Haklar";
 $vocab["unknown_user"]       = "Bilinmeyen kullanıcı";
 $vocab["login"]              = "Giriş";
 $vocab["logoff"]             = "Çıkış";
@@ -214,11 +214,11 @@ $vocab["level_3"]            = "Sistem Yöneticisi";
 $vocab["user_list"]          = "Kullanıcı listesi";
 $vocab["edit_user"]          = "Kullanıcı düzenle";
 $vocab["delete_user"]        = "Bu kullanıcıyı sil";
-//$vocab["users.name"]       = Tutarlılık için yukardaki ayarın aynısını kullan.
-//$vocab["users.password"]   = Tutarlılık için yukardaki ayarın aynısını kullan.
+//$vocab["user.name"]       = Tutarlılık için yukardaki ayarın aynısını kullan.
+//$vocab["user.password"]   = Tutarlılık için yukardaki ayarın aynısını kullan.
 
 
-$vocab["users.email"]        = "Eposta adresi";
+$vocab["user.email"]        = "Eposta adresi";
 $vocab["password_twice"]     = "Eğer şifremnizi değiştirmek istiyorsanız, lütfen yeni şifrenizi iki kez giriniz.";
 
 $vocab["passwords_not_eq"]   = "Hata: Şifreler uyuşmadı.";
@@ -377,7 +377,7 @@ $vocab["disabled_room_note"]      = "Eğer bu toplantı odası kapalı ise takvi
                                     "bu durumda yer ayırtma mümkün olmaz, Buna rağmen geçmiş kayıtlar kalır arama ve raporlamada görülür." .
 $vocab["book_ahead_note_periods"] = "Dönemleri kullanırken, yer ayırtma en yakın tam günün aşağısına yuvarlanır.";
 
-// Used in edit_users.php
+// Used in edit_user.php
 $vocab["name_empty"]         = "Bir ad girmelisiniz";
 $vocab["name_not_unique"]    = "Bu ad zaten kullanılmakta. Lütfen başka bir ad seçiniz.";
 

@@ -642,35 +642,17 @@ function get_fieldset_location_settings()
   $fieldset->addLegend(get_vocab('area_room_settings'));
 
   // Default room
-  $areas = get_area_names($all=true);
-  if (count($areas) > 0)
+  $rooms = new Rooms();
+  if (count($rooms) > 0)
   {
-    $options = array();
+    $field = new FieldSelect();
 
-    foreach($areas as $area_id => $area_name)
-    {
-      $rooms = get_room_names($area_id, $all=true);
-      if (count($rooms) > 0)
-      {
-        $options[$area_name] = array();
-        foreach($rooms as $room_id => $room_name)
-        {
-          $options[$area_name][$room_id] = $room_name;
-        }
-      }
-    }
+    $field->setLabel(get_vocab('default_room'))
+          ->setLabelAttribute('title', get_vocab('default_room_note'))
+          ->setControlAttribute('name', 'import_default_room')
+          ->addSelectOptions($rooms->getGroupedNames(true), $default_room, true);
 
-    if (count($options) > 0)
-    {
-      $field = new FieldSelect();
-
-      $field->setLabel(get_vocab('default_room'))
-            ->setLabelAttribute('title', get_vocab('default_room_note'))
-            ->setControlAttribute('name', 'import_default_room')
-            ->addSelectOptions($options, $default_room, true);
-
-      $fieldset->addElement($field);
-    }
+    $fieldset->addElement($field);
   }
 
   // Area-room order
