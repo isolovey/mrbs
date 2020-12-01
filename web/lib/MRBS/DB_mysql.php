@@ -175,7 +175,7 @@ class DB_mysql extends DB
 
 
   // Destructor cleans up the connection
-  function __destruct()
+  public function __destruct()
   {
     //print "MySQL destructor called\n";
      // Release any forgotten locks
@@ -192,8 +192,9 @@ class DB_mysql extends DB
   // Return a string identifying the database version
   public function version()
   {
-    return "MySQL ".$this->query1("SELECT VERSION()");
+    return "MySQL " . $this->query1("SELECT VERSION()");
   }
+
 
   // Check if a table exists
   public function table_exists($table)
@@ -242,11 +243,13 @@ class DB_mysql extends DB
       );
 
     // Length in bytes of MySQL integer types
-    $int_bytes = array('bigint'    => 8, // bytes
-                       'int'       => 4,
-                       'mediumint' => 3,
-                       'smallint'  => 2,
-                       'tinyint'   => 1);
+    $int_bytes = array(
+        'bigint'    => 8, // bytes
+        'int'       => 4,
+        'mediumint' => 3,
+        'smallint'  => 2,
+        'tinyint'   => 1
+      );
 
     $stmt = $this->query("SHOW COLUMNS FROM $table", array());
 
@@ -398,5 +401,16 @@ class DB_mysql extends DB
 
     $params[] = $delimiter;
     return "SUBSTRING_INDEX($fieldname, ?, $count)";
+  }
+
+
+  // Returns the syntax for aggregating a number of rows as a delimited string
+  public function syntax_group_array_as_string($fieldname, $delimiter=',')
+  {
+    // Use DISTINCT to eliminate duplicates which can arise when the query
+    // has joins on two or more junction tables.  Maybe a different query
+    // would eliminate the duplicates and the need for DISTINCT, and it may
+    // or may not be more efficient.
+    return "GROUP_CONCAT(DISTINCT $fieldname SEPARATOR '$delimiter')";
   }
 }
