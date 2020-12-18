@@ -199,9 +199,9 @@ $vocab["none_outstanding"]   = "Sinulla ei ole hyväksyntää odottavia varauksi
 $vocab["accessdenied"]       = "Pääsy kielletty";
 $vocab["norights"]           = "Sinulla ei ole riittävästi oikeuksia yrittämäsi toiminnon suorittamiseen.";
 $vocab["please_login"]       = "Ole hyvä ja kirjaudu sisään";
-$vocab["users.name"]          = "Käyttäjätunnus";
-$vocab["users.password"]      = "Salasana";
-$vocab["users.level"]         = "Käyttöoikeudet";
+$vocab["user.name"]          = "Käyttäjätunnus";
+$vocab["user.password"]      = "Salasana";
+$vocab["user.level"]         = "Käyttöoikeudet";
 $vocab["unknown_user"]       = "Tuntematon käyttäjä";
 $vocab["login"]              = "Kirjaudu sisään";
 $vocab["logoff"]             = "Kirjaudu ulos";
@@ -226,9 +226,9 @@ $vocab["level_3"]            = "järjestelmänhaltija";//user admin??
 $vocab["user_list"]          = "Käyttäjälista";
 $vocab["edit_user"]          = "Muokkaa käyttäjää";
 $vocab["delete_user"]        = "Poista tämä käyttäjä";
-//$vocab["users.name"]         = Use the same as above, for consistency.
-//$vocab["users.password"]     = Use the same as above, for consistency.
-$vocab["users.email"]         = "Sähköpostiosoite";
+//$vocab["user.name"]         = Use the same as above, for consistency.
+//$vocab["user.password"]     = Use the same as above, for consistency.
+$vocab["user.email"]         = "Sähköpostiosoite";
 $vocab["password_twice"]     = "Jos haluat vaihtaa salasanan, ole hyvä ja anna uusi salasana kahdesti";
 $vocab["passwords_not_eq"]   = "Virhe: Salasanat eivät täsmää.";
 $vocab["password_invalid"]   = "Salasana ei täytä sille asetettuja vähimmäisvaatimuksia:";
@@ -394,7 +394,7 @@ $vocab["disabled_room_note"]      = "Mikäli huone on poistettu käytöstä, sit
                                     "säilytetään ja ne ovat nähtävissä haun ja raportoinnin kautta.";
 $vocab["book_ahead_note_periods"] = "Käytettäessä aikajaksoja varaukset pyöristetään lähimpiin kokonaisiin päiviin.";
 
-// Used in edit_users.php
+// Used in edit_user.php
 $vocab["name_empty"]         = "Merkinnän nimeä ei määritelty.";
 $vocab["name_not_unique"]    = "on jo käytössä. Valitse toinen nimi.";
 
