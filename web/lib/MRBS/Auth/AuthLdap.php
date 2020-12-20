@@ -1,6 +1,7 @@
 <?php
 namespace MRBS\Auth;
 
+use MRBS\Group;
 use MRBS\User;
 
 
@@ -320,8 +321,31 @@ class AuthLdap extends Auth
   }
 
 
+  // Converts group names to ids, creating a new id if the group doesn't already exist
+  private static function convertGroupNamesToIds(array $names)
+  {
+    $result = array();
+
+    foreach ($names as $name)
+    {
+      $group = Group::getByName($name);
+      // If the group doesn't exist create it
+      if (!isset($group))
+      {
+        $group = new Group($name);
+        $group->save();
+      }
+      $result[] = $group->id;
+    }
+
+    return $result;
+  }
+
+
   public function getUser($username)
   {
+    global $ldap_get_user_email;
+
     if (!isset($username) || ($username === ''))
     {
       return null;
@@ -336,17 +360,123 @@ class AuthLdap extends Auth
     }
 
     // Otherwise we'll have to query LDAP.
-    $user = new User($username);
+    $object = array();
 
-    $user->display_name = $this->getDisplayName($username);
-    $user->email = $this->getEmail($username);
+    $res = $this->action('getUserCallback', $username, $object);
+    if (!$res)
+    {
+      return null;
+    }
+
+    $user = parent::getUser($username);
+    if (!$user)
+    {
+      return null;
+    }
+
+    $keys = array('display_name', 'email', 'groups');
+    foreach ($keys as $key)
+    {
+      if (isset($object['user'][$key]))
+      {
+        $value = $object['user'][$key];
+        // We have to convert the group names to ids
+        if ($key === 'groups')
+        {
+          $value = self::convertGroupNamesToIds($value);
+        }
+        $user->$key = $value;
+      }
+    }
+
     $user->level = $this->getLevel($username);
+
+    // Update the user table with the latest user data
+    $user->save();
+
+    // TODO: think about other auth types
 
     return $user;
   }
 
 
+  /* getUserCallback(&$ldap, $base_dn, $dn, $user_search,
+                     $username, &$object)
+   *
+   * &$ldap       - Reference to the LDAP object
+   * $base_dn     - The base DN
+   * $dn          - The user's DN
+   * $user_search - The LDAP filter to find the user
+   * $username    - The user name
+   * &$object     - Reference to the generic object
+   *
+   * Returns:
+   *   false    - Didn't find a user
+   *   true     - Found a user
+   */
+  private static function getUserCallback(&$ldap, $base_dn, $dn, $user_search,
+                                           $user, &$object)
+  {
+    global $ldap_get_user_email;
+
+    self::debug("base_dn '$base_dn' dn '$dn' user_search '$user_search' user '$user'");
+
+    if (!$ldap || !$base_dn || !$dn || !$user_search)
+    {
+      self::debug("invalid parameters, could not call ldap_read, returning false");
+      return false;
+    }
+
+    $attributes = self::getAttributes($object, $ldap_get_user_email, true);
+
+    $res = ldap_read(
+        $ldap,
+        $dn,
+        "(objectclass=*)",
+        \MRBS\array_values_recursive($attributes)
+      );
+
+    if ($res === false)
+    {
+      self::debug("ldap_read failed: " . self::ldapError($ldap));
+      return false;
+    }
+
+    if (ldap_count_entries($ldap, $res) === 0)
+    {
+      self::debug("No entries found");
+      return false;
+    }
+
+    $entry = ldap_first_entry($ldap, $res);
+    $user = self::getResult($ldap, $entry, $attributes);
+
+    if (isset($user['username']))
+    {
+      if (!isset($user['display_name']))
+      {
+        $user['display_name'] = $user['username'];
+      }
+      $object['user'] = $user;
+    }
+
+    return true;
+  }
+
+
+  public function getUsers()
+  {
+    return $this->getUsersGeneric('getUsersCallback');
+  }
+
+
   public function getUsernames()
+  {
+    return $this->getUsersGeneric('getUsernamesCallback');
+  }
+
+
+  private function getUsersGeneric($callback)
   {
     $mrbs_user = \MRBS\session()->getCurrentUser();
 
@@ -359,7 +489,7 @@ class AuthLdap extends Auth
     $object['users'] = array();
     $users = array();
 
-    $res = $this->action('getUsernamesCallback', $mrbs_user->username, $object, true);
+    $res = $this->action($callback, $mrbs_user->username, $object, true);
 
     if ($res === false)
     {
@@ -377,9 +507,126 @@ class AuthLdap extends Auth
   }
 
 
-  private static function getUsernamesCallback(&$ldap, $base_dn, $dn, $user_search,
-                                                       $user, &$object)
+  private static function getUsersCallback(&$ldap, $base_dn, $dn, $user_search,
+                                           $user, &$object)
   {
+    return self::getUsersGenericCallback($ldap, $base_dn, $dn, $user_search,
+                                          $user, $object, true);
+  }
+
+
+  private static function getUsernamesCallback(&$ldap, $base_dn, $dn, $user_search,
+                                               $user, &$object)
+  {
+    return self::getUsersGenericCallback($ldap, $base_dn, $dn, $user_search,
+                                          $user, $object, false);
+  }
+
+
+  // Returns an array of attributes for use in an LDAP query
+  private static function getAttributes($object, $include_email=true, $include_groups=true)
+  {
+    $result = array();
+
+    // Username
+    $result['username'] = \MRBS\utf8_strtolower($object['config']['ldap_user_attrib']);
+
+    // The display name attribute might not have been set in the config file
+    if (isset($object['config']['ldap_name_attrib']))
+    {
+      // The display name attribute can be a composite attribute, eg "givenName sn"
+      $result['display_name'] = self::explodeNameAttribute($object['config']['ldap_name_attrib']);
+    }
+
+    // The email address
+    if ($include_email && isset($object['config']['ldap_email_attrib']))
+    {
+      $result['email'] = \MRBS\utf8_strtolower($object['config']['ldap_email_attrib']);
+    }
+
+    // The group name attribute might not have been set in the config file
+    if ($include_groups && isset($object['config']['ldap_group_member_attrib']))
+    {
+      $result['groups'] = \MRBS\utf8_strtolower($object['config']['ldap_group_member_attrib']);
+    }
+
+    return $result;
+  }
+
+
+  // Returns an associative array from the result of an LDAP search
+  private static function getResult($ldap, $entry, $attributes)
+  {
+    // Initialise all keys in the user array, in case an attribute isn't present
+    $attributes_keys = array_keys($attributes);
+    $user = array();
+    foreach ($attributes_keys as $key)
+    {
+      switch ($key)
+      {
+        case 'username':
+        case 'email':
+          $user[$key] = null;
+          break;
+        case 'display_name':
+          $display_name_parts = array();
+          $user[$key] = null;
+          break;
+        case 'groups':
+          $user[$key] = array();
+          break;
+        default:
+          throw new \Exception("Unknown key '$key'");
+      }
+    }
+
+    $attribute = ldap_first_attribute($ldap, $entry);
+
+    // Loop through all the attributes for this user
+    while ($attribute)
+    {
+      $values = ldap_get_values($ldap, $entry, $attribute);
+      $attribute = \MRBS\utf8_strtolower($attribute);  // ready for the comparisons
+
+      if ($attribute == $attributes['username'])
+      {
+        $user['username'] = $values[0];
+      }
+      elseif (isset($attributes['display_name']) && in_array($attribute, $attributes['display_name']))
+      {
+        $display_name_parts[$attribute] = $values[0];
+      }
+      elseif (isset($attributes['email']) && ($attribute == $attributes['email']))
+      {
+        $user['email'] = $values[0];
+      }
+      elseif (isset($attributes['groups']) && ($attribute == $attributes['groups']))
+      {
+        for ($i=0; $i<$values['count']; $i++)
+        {
+          $user['groups'][] = $values[$i];
+        }
+      }
+
+      $attribute = ldap_next_attribute($ldap, $entry);
+    }
+
+    // Assemble the display name from its constituent parts
+    if (isset($attributes['display_name']))
+    {
+      $user['display_name'] = self::implodeNameAttribute(implode(' ', $attributes['display_name']),
+                                                         $display_name_parts);
+    }
+
+    return $user;
+  }
+
+
+  private static function getUsersGenericCallback(&$ldap, $base_dn, $dn, $user_search,
+                                                  $user, &$object, $include_groups=false)
+  {
+    global $ldap_get_user_email;
+
     self::debug("base_dn '$base_dn'");
 
     if (!$ldap || !$base_dn || !isset($object['config']['ldap_user_attrib']))
@@ -398,20 +645,10 @@ class AuthLdap extends Auth
     }
     $filter = "($filter)";
 
-    // Form the attributes
-    $username_attrib = \MRBS\utf8_strtolower($object['config']['ldap_user_attrib']);
-    $attributes = array($username_attrib);
-
-    // The display name attribute might not have been set in the config file
-    if (isset($object['config']['ldap_name_attrib']))
-    {
-      $display_name_attrib = \MRBS\utf8_strtolower($object['config']['ldap_name_attrib']);
-      $attributes[] = $display_name_attrib;
-    }
+    $attributes = self::getAttributes($object, $ldap_get_user_email, $include_groups);
 
     self::debug("searching with base_dn '$base_dn' and filter '$filter'");
-
-    $res = ldap_search($ldap, $base_dn, $filter, $attributes);
+    $res = ldap_search($ldap, $base_dn, $filter, \MRBS\array_values_recursive($attributes));
 
     if ($res == false)
     {
@@ -426,29 +663,7 @@ class AuthLdap extends Auth
     // Loop through the entries to get all the users
     while ($entry)
     {
-      // Initialise all keys in the user array to NULL, in case an attribute isn't present
-      $user = array('username' => null,
-        'display_name' => null);
-
-      $attribute = ldap_first_attribute($ldap, $entry);
-
-      // Loop through all the attributes for this user
-      while ($attribute)
-      {
-        $values = ldap_get_values($ldap, $entry, $attribute);
-        $attribute = \MRBS\utf8_strtolower($attribute);  // ready for the comparisons
-
-        if ($attribute == $username_attrib)
-        {
-          $user['username'] = $values[0];
-        }
-        elseif ($attribute == $display_name_attrib)
-        {
-          $user['display_name'] = $values[0];
-        }
-
-        $attribute = ldap_next_attribute($ldap, $entry);
-      }
+      $user = self::getResult($ldap, $entry, $attributes);
 
       if (isset($user['username']))
       {
@@ -502,6 +717,29 @@ class AuthLdap extends Auth
     $res = $this->action('getNameCallback', $username, $object);
 
     return ($res) ? $object['name'] : $username;
+  }
+
+
+  // Get the user's groups from LDAP.  Returns an array of group ids, ie
+  // the LDAP group names mapped to MRBS group ids.
+  protected function getGroups($username)
+  {
+    if (!isset($username) || ($username === ''))
+    {
+      return array();
+    }
+
+    $object = array();
+
+    $res = $this->action('getGroupsCallback', $username, $object);
+
+    if ($res === false)
+    {
+      return array();
+    }
+
+    // We've got a good result.  Convert the group names into ids
+    return self::convertGroupNamesToIds($object['groups']);
   }
 
 
@@ -695,50 +933,113 @@ class AuthLdap extends Auth
   private static function getNameCallback(&$ldap, $base_dn, $dn, $user_search,
                                           $username, &$object)
   {
-    $name_attrib = $object['config']['ldap_name_attrib'];
-
-    self::debug("base_dn '$base_dn' dn '$dn' " .
-                "user_search '$user_search' user '$username'");
-
-    if ($ldap && $base_dn && $dn && $user_search)
+    if (isset($object['config']['ldap_name_attrib']))
     {
-      $res = ldap_read($ldap,
-                       $dn,
-                       "(objectclass=*)",
-                       array(\MRBS\utf8_strtolower($name_attrib)) );
+      $display_name_attribs = self::explodeNameAttribute($object['config']['ldap_name_attrib']);
 
-      if (ldap_count_entries($ldap, $res) > 0)
+      self::debug("base_dn '$base_dn' dn '$dn' " .
+        "user_search '$user_search' user '$username'");
+
+      if ($ldap && $base_dn && $dn && $user_search)
       {
-        self::debug("search successful");
-        $entries = ldap_get_entries($ldap, $res);
-        $object['name'] = $entries[0][\MRBS\utf8_strtolower($name_attrib)][0];
+        $res = ldap_read($ldap,
+                         $dn,
+                         "(objectclass=*)",
+                         $display_name_attribs);
 
-        self::debug("name is '" . $object['name'] . "'");
+        $entry = ldap_first_entry($ldap, $res);
+        if ($entry)
+        {
+          self::debug("search successful");
+          $display_name_parts = array();
+          $attribute = ldap_first_attribute($ldap, $entry);
 
-        return true;
+          // Loop through all the attributes for this user
+          while ($attribute)
+          {
+            $values = ldap_get_values($ldap, $entry, $attribute);
+            $attribute = \MRBS\utf8_strtolower($attribute);
+            $display_name_parts[$attribute] = $values[0];
+            $attribute = ldap_next_attribute($ldap, $entry);
+          }
+
+          // Assemble the display name from its constituent parts
+          $object['name'] = self::implodeNameAttribute($object['config']['ldap_name_attrib'], $display_name_parts);
+          self::debug("name is '" . $object['name'] . "'");
+
+          return true;
+        }
       }
     }
+
+    return false;
+  }
+
+
+  /* getGroupsCallback(&$ldap, $base_dn, $dn, $user_search,
+                         $username, &$object)
+   *
+   * Get the groups of a found user
+   *
+   * &$ldap       - Reference to the LDAP object
+   * $base_dn     - The base DN
+   * $dn          - The user's DN
+   * $user_search - The LDAP filter to find the user
+   * $username    - The user name
+   * &$object     - Reference to the generic object
+   *
+   * Returns:
+   *   false    - Didn't find a user
+   *   true     - Found a user
+   */
+  private static function getGroupsCallback(&$ldap, $base_dn, $dn, $user_search,
+                                            $user, &$object)
+  {
+    if (isset($object['config']['ldap_group_member_attrib']))
+    {
+      $group_member_attrib = \MRBS\utf8_strtolower($object['config']['ldap_group_member_attrib']);
+
+      self::debug("base_dn '$base_dn' dn '$dn' user_search '$user_search' user '$user'");
+
+      if ($ldap && $base_dn && $dn && $user_search)
+      {
+        $res = ldap_read($ldap,
+                         $dn,
+                         "(objectclass=*)",
+                         array($group_member_attrib));
+
+        if ($entry = ldap_first_entry($ldap, $res))
+        {
+          self::debug("search successful");
+          if ($values = ldap_get_values($ldap, $entry, $group_member_attrib))
+          {
+            $object['groups'] = array();
+            for ($i = 0; $i < $values['count']; $i++)
+            {
+              $object['groups'][] = $values[$i];
+            }
+            self::debug("groups are " . json_encode($object['groups']));
+            return true;
+          }
+          self::debug("no values");
+        }
+      }
+    }
+
     return false;
   }
 
 
   protected function getEmail($username)
   {
-    global $ldap_get_user_email;
-
-    if (!isset($username) || $username === '')
+    if (!isset($username) || ($username === ''))
     {
       return '';
     }
 
-    if ($ldap_get_user_email)
-    {
-      $object = array();
-      $res = $this->action('getEmailCallback', $username, $object);
-      return ($res) ? $object['email'] : '';
-    }
-
-    return $this->getDefaultEmail($username);
+    $object = array();
+    $res = $this->action('getEmailCallback', $username, $object);
+    return ($res) ? $object['email'] : '';
   }
 
 
@@ -833,6 +1134,34 @@ class AuthLdap extends Auth
     }
 
     return false;
+  }
+
+
+  // Some attributes, eg the display name, can actually be composed
+  // of multiple LDAP attributes, eg "givenName sn".  This method
+  // decomposes them into their constituent parts.
+  private static function explodeNameAttribute($attribute)
+  {
+    $result = explode(' ', $attribute);
+    return array_map('\MRBS\utf8_strtolower', $result);
+  }
+
+
+  // This method assembles individual attributes into a composite attribute.
+  private static function implodeNameAttribute($attribute, array $parts)
+  {
+    $result = array();
+
+    $name_parts = self::explodeNameAttribute($attribute);
+    foreach ($name_parts as $name_part)
+    {
+      if (isset($parts[$name_part]))
+      {
+        $result[] = $parts[$name_part];
+      }
+    }
+
+    return implode(' ', $result);
   }
 
 
