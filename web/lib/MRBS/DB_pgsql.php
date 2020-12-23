@@ -11,6 +11,20 @@ class DB_pgsql extends DB
   const DB_DEFAULT_PORT = 5432;
   const DB_DBO_DRIVER = "pgsql";
 
+  private static $min_version = '8.4';  // Required for array_agg()
+
+  public function __construct($db_host, $db_username, $db_password, $db_name, $persist = 0, $db_port = null)
+  {
+    parent::__construct($db_host, $db_username, $db_password, $db_name, $persist, $db_port);
+    $this_version = $this->server_version();
+    if (version_compare($this_version, self::$min_version) < 0)
+    {
+      $message = "MRBS requires PostgreSQL must be version " . self::$min_version . " or higher." .
+                 " This server is running version $this_version.";
+      die($message);
+    }
+  }
+
 
   // A small utility function (not part of the DB abstraction API) to
   // resolve a qualified table name into its schema and table components.
@@ -113,7 +127,7 @@ class DB_pgsql extends DB
 
 
   // Destructor cleans up the connection
-  function __destruct()
+  public function __destruct()
   {
     //print "PostgreSQL destructor called\n";
 
@@ -125,6 +139,19 @@ class DB_pgsql extends DB
 
     // Rollback any outstanding transactions
     $this->rollback();
+  }
+
+  // Return a string identifying the database version
+  public function version()
+  {
+    return $this->query1("SELECT VERSION()");
+  }
+
+
+  // Just returns a version number, eg "9.2.24"
+  private function server_version()
+  {
+    return $this->query1("SHOW SERVER_VERSION");
   }
 
 
@@ -190,18 +217,21 @@ class DB_pgsql extends DB
     $fields = array();
 
     // Map PostgreSQL types on to a set of generic types
-    $nature_map = array('bigint'            => 'integer',
-                        'boolean'           => 'boolean',
-                        'bytea'             => 'binary',
-                        'character'         => 'character',
-                        'character varying' => 'character',
-                        'decimal'           => 'decimal',
-                        'double precision'  => 'real',
-                        'integer'           => 'integer',
-                        'numeric'           => 'decimal',
-                        'real'              => 'real',
-                        'smallint'          => 'integer',
-                        'text'              => 'character');
+    $nature_map = array(
+        'bigint'                    => 'integer',
+        'boolean'                   => 'boolean',
+        'bytea'                     => 'binary',
+        'character'                 => 'character',
+        'character varying'         => 'character',
+        'decimal'                   => 'decimal',
+        'double precision'          => 'real',
+        'integer'                   => 'integer',
+        'numeric'                   => 'decimal',
+        'real'                      => 'real',
+        'smallint'                  => 'integer',
+        'text'                      => 'character',
+        'timestamp with time zone'  => 'timestamp'
+      );
 
     // $table can be a qualified name.  We need to resolve it if necessary into its component
     // parts, the schema and table names
@@ -313,6 +343,14 @@ class DB_pgsql extends DB
     return " $fieldname ~* ? ";
   }
 
+  // Generate non-standard SQL to add a table column after another specified
+  // column
+  public function syntax_addcolumn_after($fieldname)
+  {
+    // Can't be done in PostgreSQL without dropping and tr-creating the table.
+    return '';
+  }
+
 
   // Generate non-standard SQL to specify a column as an auto-incrementing
   // integer while doing a CREATE TABLE
@@ -348,6 +386,19 @@ class DB_pgsql extends DB
 
     $params[] = $delimiter;
     return "SPLIT_PART($fieldname, ?, $count)";
+  }
+
+
+  // Returns the syntax for aggregating a number of rows as a delimited string
+  public function syntax_group_array_as_string($fieldname, $delimiter=',')
+  {
+    // array_agg introduced in PostgreSQL version 8.4
+    //
+    // Use DISTINCT to eliminate duplicates which can arise when the query
+    // has joins on two or more junction tables.  Maybe a different query
+    // would eliminate the duplicates and the need for DISTINCT, and it may
+    // or may not be more efficient.
+    return "array_to_string(array_agg(DISTINCT $fieldname), '$delimiter')";
   }
 
 }
