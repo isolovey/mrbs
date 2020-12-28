@@ -214,9 +214,9 @@ $vocab["none_outstanding"]   = "Tidak ada pesanan untuk disetujui.";
 $vocab["accessdenied"]       = "Akses Gagal";
 $vocab["norights"]           = "Anda tidak punya hak yg cukup untuk melihat halaman ini.";
 $vocab["please_login"]       = "Silahkan Masuk";
-$vocab["users.name"]         = "Nama";
-$vocab["users.password"]     = "Kata sandi";
-$vocab["users.level"]        = "Hak";
+$vocab["user.name"]         = "Nama";
+$vocab["user.password"]     = "Kata sandi";
+$vocab["user.level"]        = "Hak";
 $vocab["unknown_user"]       = "Pengguna Anonim";
 $vocab["login"]              = "Masuk";
 $vocab["logoff"]             = "Keluar";
@@ -241,9 +241,9 @@ $vocab["level_3"]            = "pengguna biasa juga admin";
 $vocab["user_list"]          = "Daftar pengguna";
 $vocab["edit_user"]          = "Ubah pengguna";
 $vocab["delete_user"]        = "Hapus pengguna ini";
-//$vocab["users.name"]         = Use the same as above, for consistency.
-//$vocab["users.password"]     = Use the same as above, for consistency.
-$vocab["users.email"]        = "Alamat Surel";
+//$vocab["user.name"]         = Use the same as above, for consistency.
+//$vocab["user.password"]     = Use the same as above, for consistency.
+$vocab["user.email"]        = "Alamat Surel";
 $vocab["password_twice"]     = "Jika ingin mengganti kata sandi, ketik dua kali kata sandi anda";
 $vocab["passwords_not_eq"]   = "Kata sandi tidak cocok!";
 $vocab["password_invalid"]   = "Kata sandi tidak sesuai dengan kebijakan. Setidaknya harus mengandung:";
@@ -410,7 +410,7 @@ $vocab["disabled_room_note"]      = "Jika dinonaktifkan, ruangan tidak akan munc
                                     "tetap eksis dan muncul pada halaman pencarian dan laporan.";
 $vocab["book_ahead_note_periods"] = "Ketika menggunakan periode, pesanan yg melebihi waktu akan dibulatkan kebawah mendekati satu hari penuh.";
 
-// Used in edit_users.php
+// Used in edit_user.php
 $vocab["name_empty"]         = "Anda harus menulis sebuah nama.";
 $vocab["name_not_unique"]    = "Sudah ada.  Silahkan gunakan nama lain.";
 
