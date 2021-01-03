@@ -1416,6 +1416,85 @@ div#div_custom_html {
   margin-top: 2em;
 }
 
+.roles_table_form {
+  clear: left;
+}
+
+.roles_table_form .buttons {
+  display: flex;
+}
+
+.roles_table_form .buttons input[name="button_save"] {
+  order: 1;
+  margin-left: 3em;
+}
+
+.roles_table {
+  border-collapse: collapse;
+  margin-bottom: 2em;
+}
+
+.roles_table th,
+.roles_table td {
+  text-align: center;
+  padding: 0.4em 0.7em;
+}
+
+.roles_table tbody td:nth-child(2) {
+  text-align: left;
+}
+
+.roles_table tr.room td:nth-child(2) {
+  padding-left: 1.5em;
+}
+
+.roles_table thead th {
+  background-color: #ffffff;
+}
+
+.roles_table tbody .area th,
+.roles_table tbody .area td {
+  background-color: #444444;
+  color: white;
+}
+
+.roles_table tbody .area:nth-of-type(odd) th,
+.roles_table tbody .area:nth-of-type(odd) td {
+  background-color: #777777;
+}
+
+.roles_table tbody .room th,
+.roles_table tbody .room td {
+  background-color: #ffffff;
+}
+
+.roles_table tbody .room:nth-of-type(odd) th,
+.roles_table tbody .room:nth-of-type(odd) td {
+  background-color: #eeeeee;
+}
+
+.roles_table .room th {
+  font-weight: normal;
+}
+
+.roles_table .room th:first-child {
+  padding-left: 1.7em;
+}
+
+.roles_table th:first-child {
+  text-align: left;
+}
+
+.roles_table thead tr:first-child th:not(:last-child),
+.roles_table thead tr:nth-child(2) th:first-child,
+.roles_table thead tr:nth-child(2) th:nth-child(2),
+.roles_table thead tr:nth-child(2) th:nth-child(5),
+.roles_table tbody td:first-child,
+.roles_table tbody td:nth-child(2),
+.roles_table tbody td:nth-child(5) {
+  border-right: 1px solid darkgrey;
+}
+
 
 <?php // The standard form ?>
 
@@ -1474,6 +1553,7 @@ div#div_custom_html {
   padding: 1em 0;
 }
 
+.edit_user fieldset legend,
 .standard fieldset fieldset legend{
   font-size: small;
   font-style: italic;
@@ -1675,8 +1755,9 @@ div#checks span {
   cursor: pointer;
 }
 
+.yes::after,
 .good::after {
-  content: '\002714';  <?php // checkmark ?>
+  content: '\002714';  <?php // heavy checkmark ?>
   color: green;
 }
 
@@ -1686,6 +1767,7 @@ div#checks span {
   color: #ff5722;
 }
 
+.no::after,
 .bad::after {
   content: '\002718';  <?php // cross ?>
   color: red;
@@ -1704,13 +1786,14 @@ div#checks span {
 }
 
 
-/* ------------ EDIT_USERS.PHP ------------------*/
+/* ------------ EDIT_USER.PHP ------------------*/
 
 div#user_list {
   padding: 2em 0;
 }
 
-form#add_new_user {
+form#add_new_user, form#sync {
+  float: left;
   margin-left: 1em;
 }
 
@@ -2270,6 +2353,68 @@ div#site_faq_body {
   background-color: <?php echo $help_highlight_color ?>;
 }
 
+
+/* ----------------- ROLES ------------------*/
+
+table#roles {
+  clear: left;
+}
+
+#roles th,
+#roles td {
+  vertical-align: middle;
+  padding: 0.4em 0.8em;
+}
+
+#form_edit_user {
+  margin-right: 2em;
+}
+
+#effective_permissions {
+  float: left;
+  margin-top: 2em;
+}
+
+#effective_permissions h2 {
+  margin-top: 0;
+  font-size: inherit;
+  font-style: italic;
+  font-weight: normal;
+}
+
+#effective_permissions table {
+  margin-left: 1em;
+}
+
+#effective_permissions table.fetching {
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: 0.5s;
+  transition-delay: 0.5s;
+}
+
+#effective_permissions th,
+#effective_permissions td {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.2em;
+}
+
+#effective_permissions tbody td:first-child {
+  text-align: left;
+}
+
+#effective_permissions tr.room td:first-child {
+  padding-left: 1.5em;
+}
+
+#effective_permissions tr.area:not(:first-child) td {
+  padding-top: 1em;
+}
+
+#effective_permissions tr.area td:first-child {
+  font-weight: bold;
+}
 
 /* ------------ VIEW_ENTRY.PHP ------------------*/
 

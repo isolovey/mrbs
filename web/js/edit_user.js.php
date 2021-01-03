@@ -22,7 +22,7 @@ $(document).on('page_ready', function() {
 
   <?php // Use an Ajax source - gives much better performance for large tables ?>
   var queryString = window.location.search;
-  tableOptions.ajax = 'edit_users.php' + queryString;
+  tableOptions.ajax = 'edit_user.php' + queryString;
 
   <?php // Get the types and feed those into dataTables ?>
   tableOptions.columnDefs = getTypes($('#users_table'));
@@ -49,6 +49,25 @@ $(document).on('page_ready', function() {
     }
   ]
   makeDataTable('#users_table', tableOptions, {leftColumns: 1});
+
+  $('[name="roles[]"').on('change', function() {
+      var data = {};
+      var roles = [];
+      var table = $('#effective_permissions').find('table');
+      $('[name="roles[]"').each(function() {
+          if ($(this).is(':checked'))
+          {
+            roles.push(parseInt($(this).val(), 10));
+          }
+        });
+      data.csrf_token = getCSRFToken();
+      data.id = table.data('id');
+      data.roles = roles;
+      table.addClass('fetching');
+      $.post('ajax/effective_permissions.php', data, function(result) {
+        table.replaceWith(result);
+      });
+    });
 
 });
 
