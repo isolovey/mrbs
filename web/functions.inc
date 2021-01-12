@@ -17,6 +17,34 @@ function in_arrayi($needle, $haystack)
 }
 
 
+// Tests if two arrays have the same values. The test ignores the order of the values
+// and also ignores duplicated values.
+function array_values_equal(array $a, array $b)
+{
+  return !array_diff($a, $b) && !array_diff($b, $a);
+}
+
+
+// Returns a simple array consisting of all the leaf nodes of $array
+function array_values_recursive(array $array)
+{
+  $result = array();
+
+  foreach ($array as $value)
+  {
+    if (is_array($value))
+    {
+      $result = array_merge($result, array_values_recursive($value));
+    }
+    else
+    {
+      $result[] = $value;
+    }
+  }
+
+  return $result;
+}
+
 function generate_token($length)
 {
   if (function_exists('random_bytes'))
@@ -1304,7 +1332,7 @@ function escape_js($str)
 }
 
 
-// Return a default area; used if no area is already known. This returns the
+// Return a default area id; used if no area is already known. This returns the
 // area that contains the default room (if it is set, valid and enabled) otherwise the
 // first area in alphabetical order in the database (no guarantee there is an area 1).
 // The area must be enabled for it to be considered.
@@ -1313,99 +1341,71 @@ function get_default_area()
 {
   global $default_room;
 
-  // It's possible that this function is being called during an upgrade
-  // process before the disabled column existed.
-  $disabled_field_exists = db()->field_exists(_tbl('room'), 'disabled');
-
   // If the $default_room is set and exists and is enabled and is visible to
   // the current user, then return the corresponding area
-  if (isset($default_room) && is_visible($default_room))
+  if (isset($default_room))
   {
-    $sql = "SELECT area_id
-              FROM " . _tbl('room') . " R, " . _tbl('area') . " A
-             WHERE R.id=:id
-               AND R.area_id = A.id";
-
-    if ($disabled_field_exists)
+    $room = Room::getById($default_room);
+    if (isset($room) &&
+        !$room->isDisabled() &&
+        $room->isVisible())
     {
-      $sql .= " AND R.disabled = 0 AND A.disabled = 0";
-    }
-
-    $sql .= " LIMIT 1";
-    $area = db()->query1($sql, array(':id' => $default_room));
-
-    if ($area >= 0)
-    {
-      return $area;
+      return $room->area_id;
     }
   }
 
   // Otherwise return the first enabled area in the database that has an
   // enabled and visible room
-  $sql = "SELECT R.id, R.area_id
-            FROM " . _tbl('room') . " R, " . _tbl('area') . " A
-           WHERE R.area_id = A.id";
-
-  if ($disabled_field_exists)
+  $rooms = new Rooms();
+  foreach ($rooms as $room)
   {
-    $sql .= " AND R.disabled = 0 AND A.disabled = 0";
-  }
-
-  $order_by_column = (db()->field_exists(_tbl('area'), 'sort_key')) ? 'sort_key' : 'area_name';
-  $sql .= " ORDER BY A.$order_by_column";
-
-  $res = db()->query($sql);
-
-  while (false !== ($row = $res->next_row_keyed()))
-  {
-    if (is_visible($row['id']))
+    if (isset($room) &&
+        !$room->isDisabled() &&
+        $room->isVisible())
     {
-      return $row['area_id'];
+      return $room->area_id;
     }
   }
 
   return 0;
 }
 
-// Return a default room given a valid area; used if no room is already known.
+// Return a default room id given a valid area; used if no room is already known.
 // If the area contains $default_room and $default_room is visible to the current
 // user, then it returns $default_room. Otherwise it returns the first visible room
 // in sort_key order in the database.
 // This could be changed to implement something like per-user defaults.
-function get_default_room($area)
+function get_default_room($area_id)
 {
   global $default_room;
 
-  // It's possible that this function is being called during
-  // an upgrade process before the disabled columns existed.
-  $disabled_field_exists = db()->field_exists(_tbl('room'), 'disabled');
-
-  // Check to see whether this area contains $default_room
+  // Check to see whether this area contains $default_room and that the room
+  // is enabled and visible.
   if (isset($default_room))
   {
-    $sql = "SELECT id
-              FROM " . _tbl('room') . "
-             WHERE id=:id AND area_id=:area_id";
-
-    if ($disabled_field_exists)
+    $room = Room::getById($default_room);
+    // Test for visibility last as that is the most expensive test
+    if (isset($room) &&
+        ($room->area_id == $area_id) &&
+        !$room->isDisabled() &&
+        $room->isVisible())
     {
-      $sql .= " AND disabled=0";
-    }
-
-    $sql .= " LIMIT 1";
-    $sql_params = array(':id' => $default_room, ':area_id' => $area);
-    $room = db()->query1($sql, $sql_params);
-
-    if (($room >= 0) && is_visible($room))
-    {
-      return $room;
+      return $room->id;
     }
   }
 
   // Otherwise just return the first visible room in the area
-  $rooms = get_rooms($area, !$disabled_field_exists);
+  $rooms = new Rooms($area_id);
+  foreach ($rooms as $room)
+  {
+    if (!$room->isDisabled() && $room->isVisible())
+    {
+      return $room->id;
+    }
+  }
 
-  return (count($rooms) > 0) ? $rooms[0]['id'] : 0;
+  // If all else fails
+  return 0;
 }
 
 

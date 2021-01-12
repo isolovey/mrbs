@@ -260,12 +260,11 @@ $vocab["none_outstanding"]   = "Sie haben keine Einträge, die genehmigt werden 
 $vocab["accessdenied"]       = "Zugang verweigert";
 $vocab["norights"]           = "Sie haben keine Berechtigung, diesen Eintrag zu ändern";
 $vocab["please_login"]       = "Bitte anmelden";
-$vocab["users.name"]         = "Benutzername";
-$vocab["users.display_name"] = "Anzeigename";
-$vocab["users.password"]     = "Passwort";
-$vocab["users.level"]        = "Rechte";
-$vocab["users.timestamp"]    = "Letzte Änderung";
-$vocab["users.last_login"]   = "Letzte Anmeldung";
+$vocab["user.name"]         = "Benutzername";
+$vocab["user.display_name"] = "Anzeigename";
+$vocab["user.level"]        = "Rechte";
+$vocab["user.timestamp"]    = "Letzte Änderung";
+$vocab["user.last_login"]   = "Letzte Anmeldung";
 $vocab["unknown_user"]       = "Unbekannter Benutzer";
 $vocab["login"]              = "Anmelden";
 $vocab["logoff"]             = "Abmelden";
@@ -310,34 +309,64 @@ $vocab["level_2"]            = "Administrator";
 $vocab["level_3"]            = "Benutzeradministrator";
 
 // Authentication database
-$vocab["user_list"]          = "Benutzerliste";
-$vocab["edit_user"]          = "Bearbeite Benutzer";
-$vocab["delete_user"]        = "Lösche diesen Benutzer";
-//$vocab["users.name"]         = Use the same as above, for consistency.
-//$vocab["users.password"]     = Use the same as above, for consistency.
-$vocab["users.email"]        = "Email Addresse";
-$vocab["password_twice"]     = "Falls Sie Ihr Passwort ändern wollen, geben Sie das neue Passwort zwei mal ein.";
-$vocab["passwords_not_eq"]   = "Fehler: Die Passwörter stimmen nicht überein.";
-$vocab["password_invalid"]   = "Fehler: Das Passwort entspricht nicht den Vorgaben.  Es muss folgenden Zeichen beinhalten:";
-$vocab["policy_length"]      = "%d Zeichen";
-$vocab["policy_alpha"]       = "%d Buchstabe(n)";
-$vocab["policy_lower"]       = "%d Kleinbuchstabe(n)";
-$vocab["policy_upper"]       = "%d Großbuchstabe(n)";
-$vocab["policy_numeric"]     = "%d Ziffer(n)";
-$vocab["policy_special"]     = "%d Sonderzeichen";
-$vocab["add_new_user"]       = "Benutzer hinzufügen";
-$vocab["action"]             = "Aktion";
-$vocab["user"]               = "Benutzer";
-$vocab["administrator"]      = "Administrator";
-$vocab["unknown"]            = "Unbekannt";
-$vocab["ok"]                 = "OK";
-$vocab["show_my_entries"]    = "Klicken um alle meine anstehenden Einträge anzuzeigen";
-$vocab["no_users_initial"]   = "Keine Benutzer in der Datenbank, erlaube Erstellung erster Benutzer.";
+$vocab["user_list"]             = "Benutzerliste";
+$vocab["edit_user"]             = "Bearbeite Benutzer";
+$vocab["delete_user"]           = "Lösche diesen Benutzer";
+//$vocab["user.name"]           = Use the same as above, for consistency.
+//$vocab["user.password"]       = Use the same as above, for consistency.
+$vocab["user.email"]            = "Email Addresse";
+$vocab["password_twice"]        = "Falls Sie Ihr Passwort ändern wollen, geben Sie das neue Passwort zwei mal ein.";
+$vocab["passwords_not_eq"]      = "Fehler: Die Passwörter stimmen nicht überein.";
+$vocab["password_invalid"]      = "Fehler: Das Passwort entspricht nicht den Vorgaben.  Es muss folgenden Zeichen beinhalten:";
+$vocab["policy_length"]         = "%d Zeichen";
+$vocab["policy_alpha"]          = "%d Buchstabe(n)";
+$vocab["policy_lower"]          = "%d Kleinbuchstabe(n)";
+$vocab["policy_upper"]          = "%d Großbuchstabe(n)";
+$vocab["policy_numeric"]        = "%d Ziffer(n)";
+$vocab["policy_special"]        = "%d Sonderzeichen";
+$vocab["add_new_user"]          = "Benutzer hinzufügen";
+$vocab["sync"]                  = "Synchronisieren";
+$vocab["sync_delete_no_users"]  = "Sync: es existieren keine Benutzer zum löschen.";
+$vocab["sync_deleting_n_users"] = "Sync: Benutzer %d gelöscht:";
+$vocab["sync_add_no_users"]     = "Sync: es existieren keine Benutzer zum hinzufügen.";
+$vocab["sync_adding_n_users"]   = "Sync: Benutzer %d hinzugefügt:";
+$vocab["sync_update_no_users"]  = "Sync: es existieren keine Benutzer zum aktualisieren.";
+$vocab["sync_updating_n_users"] = "Sync: Benutzer %d aktualisiert:";
+$vocab["action"]                = "Aktion";
+$vocab["user"]                  = "Benutzer";
+$vocab["administrator"]         = "Administrator";
+$vocab["unknown"]               = "Unbekannt";
+$vocab["ok"]                    = "OK";
+$vocab["show_my_entries"]       = "Klicken um alle meine anstehenden Einträge anzuzeigen";
+$vocab["no_users_initial"]      = "Keine Benutzer in der Datenbank, erlaube Erstellung erster Benutzer.";
 $vocab["no_users_create_first_admin"] = "Erstellen Sie ein Administratorkonto und melden sich mit diesem an, um weitere Benutzerkonten anzulegen.";
-
-
-$vocab["warning_last_admin"] = "Warnung!  Dies ist das letzte Administratorkonto. Dieses Konto kann nicht entfernt und ihm können auch nicht die Administrationsberechtigungen entzogen werden.  Anderenfalls würden Sie sich vom Zugang zu diesem System aussperren.";
+$vocab["warning_last_admin"]    = "Warnung!  Dies ist das letzte Administratorkonto. Dieses Konto kann nicht entfernt und ihm können auch nicht die Administrationsberechtigungen entzogen werden.  Anderenfalls würden Sie sich vom Zugang zu diesem System aussperren.";
 $vocab["copy_email_addresses"]  = "E-Maildressen kopieren";
+
+// Groups
+$vocab['group']              = "Gruppe";
+$vocab['groups']             = "Gruppen";
+$vocab["group_heading"]      = "Gruppe: %s";
+
+// Roles
+$vocab['role']               = "Rolle";
+$vocab['roles']              = "Rollen";
+$vocab['add_role']           = "Rolle hinzufügen";
+$vocab['role_name']          = "Name";
+$vocab['role_exists']        = "Die Rolle '%s' exisitert bereits.";
+$vocab['area_rule_exists']   = 'Berechtigungen existieren bereits für Bereich \'%s\'.'; // area_name
+$vocab['room_rule_exists']   = 'Berechtigungen existieren bereits für Raum \'%s\'.'; // room_name
+$vocab["confirm_del_role"]   = "Rolle '%s' wirklich löschen?";
+$vocab["role_heading"]       = "Rolle: %s";
+$vocab["add_area_rule"]      = "Berechtigung für Bereich hinzufügen";
+$vocab["add_room_rule"]      = "Berechtigung für Raum hinzufügen";
+$vocab["permission"]         = "Berechtigung";
+$vocab["permission_read"]    = "lesen";
+$vocab["permission_write"]   = "schreiben";
+$vocab["permission_all"]     = "alle";
+$vocab["state"]              = "Status";
+$vocab["state_granted"]      = "bewilligt";
+$vocab["state_denied"]       = "abgelehnt";
 
 // Used in search.php
 $vocab["invalid_search"]     = "Leerer oder ungültiger Suchbegriff.";
@@ -504,7 +533,8 @@ $vocab["disabled_room_note"]      = "Wird dieser Raum deaktiviert, wird er nicht
 $vocab["book_ahead_note_periods"] = "Bei der Benutzung von Serien werden Buchungszeiten in die Zukunft auf den nächsten ganzen Tag gerundet.";
 $vocab["invalid_types"]           = "Ungültige Kategorie";
 $vocab["invalid_types_note"]      = "Dies sind Kategorien, die in diesem Raum nicht verwendet werden dürfen.";
-// Used in edit_users.php
+
+// Used in edit_user.php
 $vocab["name_empty"]         = "Sie müssen einen Namen angeben.";
 $vocab["name_not_unique"]    = "existiert bereits.  Bitte wählen Sie einen anderen Namen.";
 
