@@ -110,32 +110,30 @@ function get_room_id($location, &$error)
   else
   {
     // First of all get the area id
-    $sql = "SELECT id
-              FROM " . _tbl('area') . "
-             WHERE area_name=?
-             LIMIT 1";
-    $area_id = db()->query1($sql, array($location_area));
-    if ($area_id < 0)
+    $area_object = Area::getByName($location_area);
+    if (!isset($area_object))
     {
       // The area does not exist - create it if we are allowed to
       if (!$area_room_create)
       {
-        $error = get_vocab("area_does_not_exist") . " '$location_area'";
-        return FALSE;
+        $error = get_vocab('area_does_not_exist') . " '$location_area'";
+        return false;
       }
-      else
+      echo get_vocab('creating_new_area') . " '$location_area'<br>\n";
+      $area_object = new Area($location_area);
+      try
       {
-        echo get_vocab("creating_new_area") . " '$location_area'<br>\n";
-        $error_add_area = '';
-        $area_id = mrbsAddArea($location_area, $error_add_area);
-        if ($area_id === FALSE)
-        {
-          $error = get_vocab("could_not_create_area") . " '$location_area'";
-          return FALSE;
-        }
+        $area_object->save();
+      }
+      catch (\Exception $e)
+      {
+        $error = get_vocab('could_not_create_area') . " '$location_area'";
+        return false;
       }
     }
+    $area_id = $area_object->id;
   }
+
   // Now we've got the area_id get the room_id
   $sql = "SELECT id
             FROM " . _tbl('room') . "
@@ -426,7 +424,7 @@ function process_event($vevent)
     // Get the area settings for this room, if we haven't got them already
     if (!isset($room_settings[$booking['room_id']]))
     {
-      get_area_settings(get_area($booking['room_id']));
+      get_area_settings(Room::getAreaId($booking['room_id']));
       $room_settings[$booking['room_id']]['morningstarts'] = $morningstarts;
       $room_settings[$booking['room_id']]['morningstarts_minutes'] = $morningstarts_minutes;
       $room_settings[$booking['room_id']]['resolution'] = $resolution;
@@ -644,35 +642,17 @@ function get_fieldset_location_settings()
   $fieldset->addLegend(get_vocab('area_room_settings'));
 
   // Default room
-  $areas = get_area_names($all=true);
-  if (count($areas) > 0)
+  $rooms = new Rooms();
+  if (count($rooms) > 0)
   {
-    $options = array();
+    $field = new FieldSelect();
 
-    foreach($areas as $area_id => $area_name)
-    {
-      $rooms = get_room_names($area_id, $all=true);
-      if (count($rooms) > 0)
-      {
-        $options[$area_name] = array();
-        foreach($rooms as $room_id => $room_name)
-        {
-          $options[$area_name][$room_id] = $room_name;
-        }
-      }
-    }
+    $field->setLabel(get_vocab('default_room'))
+          ->setLabelAttribute('title', get_vocab('default_room_note'))
+          ->setControlAttribute('name', 'import_default_room')
+          ->addSelectOptions($rooms->getGroupedNames(true), $default_room, true);
 
-    if (count($options) > 0)
-    {
-      $field = new FieldSelect();
-
-      $field->setLabel(get_vocab('default_room'))
-            ->setLabelAttribute('title', get_vocab('default_room_note'))
-            ->setControlAttribute('name', 'import_default_room')
-            ->addSelectOptions($options, $default_room, true);
-
-      $fieldset->addElement($field);
-    }
+    $fieldset->addElement($field);
   }
 
   // Area-room order

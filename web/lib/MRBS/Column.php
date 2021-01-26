@@ -1,6 +1,8 @@
 <?php
 namespace MRBS;
 
+use ReflectionClass;
+
 
 class Column
 {
@@ -46,7 +48,7 @@ class Column
 
   public function setNature($nature)
   {
-    $reflectionClass = new \ReflectionClass($this);
+    $reflectionClass = new ReflectionClass($this);
     $constants = $reflectionClass->getConstants();
     if (!in_array($nature, array_values($constants), true))
     {
@@ -79,7 +81,12 @@ class Column
 
 
   // Sanitizes a form variable
-  // TODO: this method maybe doesn't belong here.
+  // TODO: this method maybe doesn't belong here?
+  // TODO: Amalgamate it with sanitizeValue()??
+  // TODO: Look at the difference between isBooleanLike() and is_bool().
+  // TODO: Note that there are some fields which are genuine small ints, eg
+  // TODO: the level column in the user table.
+  // TODO: Also, should get_form_var() accept a boolean type?
   public function sanitizeFormVar($value)
   {
     // Turn the "booleans" into 0/1 values
@@ -102,6 +109,31 @@ class Column
     return $value;
   }
 
+
+  // Sanitize a value ready for insertion in the database
+  public function sanitizeValue($value)
+  {
+    // Turn the booleans into 0/1 values (necessary for PostgreSQL)
+    if (is_bool($value))
+    {
+      $value = ($value) ? 1 : 0;
+    }
+    // Trim the strings and truncate them to the maximum field length
+    // (necessary for PostgreSQL which doesn't truncate them itself
+    // but instead will throw an error)
+    elseif (is_string($value))
+    {
+      // Some variables, eg decimals, will also be PHP strings, so only
+      // trim columns with a database nature of 'character'.
+      if ($this->nature === Column::NATURE_CHARACTER)
+      {
+        $value = trim($value);
+        $value = $this->truncate($value);
+      }
+    }
+
+    return $value;
+  }
 
   public function isBooleanLike()
   {
