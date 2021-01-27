@@ -230,6 +230,184 @@ function generate_new_room_form()
 }
 
 
+function display_rooms($area_id)
+{
+  global $max_content_length;
+
+  $rooms = new Rooms($area_id);
+
+  if ($rooms->countVisible(true) == 0)
+  {
+    echo "<p>" . get_vocab("norooms") . "</p>\n";
+  }
+  else
+  {
+    // Get the information about the columns in the room table
+    $columns = Columns::getInstance(_tbl(Room::TABLE_NAME));
+
+    // See if there are going to be any rooms to display (in other words rooms if
+    // you are not an admin whether any rooms are enabled)
+    $n_displayable_rooms = 0;
+    foreach ($rooms as $room)
+    {
+      if (is_admin() || !$room->isDisabled())
+      {
+        $n_displayable_rooms++;
+      }
+    }
+
+    if ($n_displayable_rooms == 0)
+    {
+      echo "<p>" . get_vocab("norooms_enabled") . "</p>\n";
+    }
+    else
+    {
+      echo "<div id=\"room_info\" class=\"datatable_container\">\n";
+      // Build the table.    We deal with the name and disabled columns
+      // first because they are not necessarily the first two columns in
+      // the table (eg if you are running PostgreSQL and have upgraded your
+      // database)
+      echo "<table id=\"rooms_table\" class=\"admin_table display\">\n";
+
+      // The header
+      echo "<thead>\n";
+      echo "<tr>\n";
+
+      echo "<th>" . get_vocab("name") . "</th>\n";
+      if (is_admin())
+      {
+        // Don't show ordinary users the disabled status:  they are only going to see enabled rooms
+        echo "<th>" . get_vocab("enabled") . "</th>\n";
+      }
+      // Ignore these columns, either because we don't want to display them,
+      // or because we have already displayed them in the header column
+      $ignore = array('id', 'area_id', 'room_name', 'disabled', 'sort_key', 'custom_html');
+
+      foreach($columns as $column)
+      {
+        if (!in_array($column->name, $ignore))
+        {
+          switch ($column->name)
+          {
+            // the standard MRBS fields
+            case 'description':
+            case 'capacity':
+            case 'room_admin_email':
+            case 'invalid_types':
+              $text = get_vocab($column->name);
+              break;
+            // any user defined fields
+            default:
+              $text = get_loc_field_name(_tbl('room'), $column->name);
+              break;
+          }
+          // We don't use htmlspecialchars() here because the column names are
+          // trusted and some of them may deliberately contain HTML entities (eg &nbsp;)
+          echo "<th>$text</th>\n";
+        }
+      }
+
+      if (is_admin())
+      {
+        echo "<th>&nbsp;</th>\n";
+      }
+
+      echo "</tr>\n";
+      echo "</thead>\n";
+
+      // The body
+      echo "<tbody>\n";
+      $row_class = "odd";
+      foreach ($rooms as $room)
+      {
+        // Don't show ordinary users disabled or invisible rooms
+        if (is_admin() || (!$room->isDisabled() && $room->isVisible()))
+        {
+          $row_class = ($row_class == "even") ? "odd" : "even";
+          echo "<tr class=\"$row_class\">\n";
+
+          $html_name = htmlspecialchars($room->room_name);
+          $href = multisite('edit_room.php?room=' . $room->id);
+          // We insert an invisible span containing the sort key so that the rooms will
+          // be sorted properly
+          echo "<td><div>" .
+            "<span>" . htmlspecialchars($room->sort_key) . "</span>" .
+            "<a title=\"$html_name\" href=\"" . htmlspecialchars($href) . "\">$html_name</a>" .
+            "</div></td>\n";
+          if (is_admin())
+          {
+            // Don't show ordinary users the disabled status:  they are only going to see enabled rooms
+            echo "<td class=\"boolean\"><div>" . ((!$room->isDisabled()) ? MRBS_HEAVY_CHECK_MARK : '') . "</div></td>\n";
+          }
+          foreach($columns as $column)
+          {
+            if (!in_array($column->name, $ignore))
+            {
+              switch ($column->name)
+              {
+                // the standard MRBS fields
+                case 'description':
+                case 'room_admin_email':
+                  echo "<td><div>" . htmlspecialchars($room->{$column->name}) . "</div></td>\n";
+                  break;
+                case 'capacity':
+                  echo "<td class=\"int\"><div>" . $room->{$column->name} . "</div></td>\n";
+                  break;
+                case 'invalid_types':
+                  echo "<td><div>" . get_type_names($room->{$column->name}) . "</div></td>\n";
+                  break;
+                // any user defined fields
+                default:
+                  if ($column->isBooleanLike())
+                  {
+                    // booleans: represent by a checkmark
+                    echo "<td class=\"boolean\"><div>";
+                    echo (!empty($room->{$field['name']})) ? MRBS_HEAVY_CHECK_MARK : '';
+                    echo "</div></td>\n";
+                  }
+                  elseif ($column->getNature() == Column::NATURE_INTEGER)
+                  {
+                    // integer values
+                    echo "<td class=\"int\"><div>" . $room->{$column->name} . "</div></td>\n";
+                  }
+                  else
+                  {
+                    // strings
+                    $value = $room->{$column->name};
+                    $html = "<td title=\"" . htmlspecialchars($value) . "\"><div>";
+                    // Truncate before conversion, otherwise you could chop off in the middle of an entity
+                    $html .= htmlspecialchars(utf8_substr($value, 0, $max_content_length));
+                    $html .= (utf8_strlen($value) > $max_content_length) ? '&hellip;' : '';
+                    $html .= "</div></td>\n";
+                    echo $html;
+                  }
+                  break;
+              }  // switch
+            }  // if
+          }  // foreach
+
+          // Give admins a delete button
+          if (is_admin())
+          {
+            echo "<td>\n<div>\n";
+            generate_room_delete_form($room->id, $area_id);
+
+
+            echo "</div>\n</td>\n";
+          }
+
+          echo "</tr>\n";
+        }
+      }
+
+      echo "</tbody>\n";
+      echo "</table>\n";
+      echo "</div>\n";
+
+    }
+  }
+}
+
 // Check the CSRF token.
 // Only check the token if the page is accessed via a POST request.  Therefore
 // this page should not take any action, but only display data.
@@ -259,21 +437,8 @@ print_header($context);
 // Get the details we need for this area
 if (isset($area))
 {
-  $sql = "SELECT area_name, custom_html
-            FROM " . _tbl('area') . "
-           WHERE id=?
-           LIMIT 1";
-
-  $res = db()->query($sql, array($area));
-
-  if ($res->count() == 1)
-  {
-    $row = $res->next_row_keyed();
-    $area_name = $row['area_name'];
-    $custom_html = $row['custom_html'];
-  }
+  $area_object = Area::getById($area);
 }
-
 
 echo "<h2>" . get_vocab("administration") . "</h2>\n";
 if (!empty($error))
@@ -284,23 +449,23 @@ if (!empty($error))
 // TOP SECTION:  THE FORM FOR SELECTING AN AREA
 echo "<div id=\"area_form\">\n";
 
-$sql = "SELECT id, area_name, disabled
-          FROM " . _tbl('area') . "
-      ORDER BY disabled, sort_key";
-$res = db()->query($sql);
+$areas = new Areas();
 
 $enabled_areas = array();
 $disabled_areas = array();
 
-while (false !== ($row = $res->next_row_keyed()))
+foreach ($areas as $a)
 {
-  if ($row['disabled'])
+  if ($a->isVisible())
   {
-    $disabled_areas[$row['id']] = $row['area_name'];
-  }
-  else
-  {
-    $enabled_areas[$row['id']] = $row['area_name'];
+    if ($a->isDisabled())
+    {
+      $disabled_areas[$a->id] = $a->area_name;
+    }
+    else
+    {
+      $enabled_areas[$a->id] = $a->area_name;
+    }
   }
 }
 
@@ -332,11 +497,14 @@ echo "</div>";  // area_form
 
 
 // Now the custom HTML
-if ($auth['allow_custom_html'])
+if ($auth['allow_custom_html'] &&
+    isset($area_object) &&
+    isset($area_object->custom_html) &&
+    ($area_object->custom_html !== ''))
 {
   echo "<div id=\"div_custom_html\">\n";
   // no htmlspecialchars() because we want the HTML!
-  echo (isset($custom_html)) ? "$custom_html\n" : "";
+  echo $area_object->custom_html . "\n";
   echo "</div>\n";
 }
 
@@ -348,187 +516,16 @@ if (is_admin() || !empty($enabled_areas))
 {
   echo "<h2>\n";
   echo get_vocab("rooms");
-  if(isset($area_name))
+  if(isset($area_object))
   {
-    echo " " . get_vocab("in") . " " . htmlspecialchars($area_name);
+    echo " " . get_vocab("in") . " " . htmlspecialchars($area_object->area_name);
   }
   echo "</h2>\n";
 
   echo "<div id=\"room_form\">\n";
   if (isset($area))
   {
-    $rooms = get_rooms($area, true);
-
-    if (count($rooms) == 0)
-    {
-      echo "<p>" . get_vocab("norooms") . "</p>\n";
-    }
-    else
-    {
-       // Get the information about the fields in the room table
-      $fields = db()->field_info(_tbl('room'));
-
-      // See if there are going to be any rooms to display (in other words rooms if
-      // you are not an admin whether any rooms are enabled)
-      $n_displayable_rooms = 0;
-      foreach ($rooms as $r)
-      {
-        if (is_admin() || !$r['disabled'])
-        {
-          $n_displayable_rooms++;
-        }
-      }
-
-      if ($n_displayable_rooms == 0)
-      {
-        echo "<p>" . get_vocab("norooms_enabled") . "</p>\n";
-      }
-      else
-      {
-        echo "<div id=\"room_info\" class=\"datatable_container\">\n";
-        // Build the table.    We deal with the name and disabled columns
-        // first because they are not necessarily the first two columns in
-        // the table (eg if you are running PostgreSQL and have upgraded your
-        // database)
-        echo "<table id=\"rooms_table\" class=\"admin_table display\">\n";
-
-        // The header
-        echo "<thead>\n";
-        echo "<tr>\n";
-
-        echo "<th>" . get_vocab("name") . "</th>\n";
-        if (is_admin())
-        {
-          // Don't show ordinary users the disabled status:  they are only going to see enabled rooms
-          echo "<th>" . get_vocab("enabled") . "</th>\n";
-        }
-        // ignore these columns, either because we don't want to display them,
-        // or because we have already displayed them in the header column
-        $ignore = array('id', 'area_id', 'room_name', 'disabled', 'sort_key', 'custom_html');
-        foreach($fields as $field)
-        {
-          if (!in_array($field['name'], $ignore))
-          {
-            switch ($field['name'])
-            {
-              // the standard MRBS fields
-              case 'description':
-              case 'capacity':
-              case 'room_admin_email':
-              case 'invalid_types':
-                $text = get_vocab($field['name']);
-                break;
-              // any user defined fields
-              default:
-                $text = get_loc_field_name(_tbl('room'), $field['name']);
-                break;
-            }
-            // We don't use htmlspecialchars() here because the column names are
-            // trusted and some of them may deliberately contain HTML entities (eg &nbsp;)
-            echo "<th>$text</th>\n";
-          }
-        }
-
-        if (is_admin())
-        {
-          echo "<th>&nbsp;</th>\n";
-        }
-
-        echo "</tr>\n";
-        echo "</thead>\n";
-
-        // The body
-        echo "<tbody>\n";
-        $row_class = "odd";
-        foreach ($rooms as $r)
-        {
-          // Don't show ordinary users disabled rooms
-          if (is_admin() || !$r['disabled'])
-          {
-            $row_class = ($row_class == "even") ? "odd" : "even";
-            echo "<tr class=\"$row_class\">\n";
-
-            $html_name = htmlspecialchars($r['room_name']);
-            $href = multisite('edit_room.php?room=' . $r['id']);
-            // We insert an invisible span containing the sort key so that the rooms will
-            // be sorted properly
-            echo "<td><div>" .
-                 "<span>" . htmlspecialchars($r['sort_key']) . "</span>" .
-                 "<a title=\"$html_name\" href=\"" . htmlspecialchars($href) . "\">$html_name</a>" .
-                 "</div></td>\n";
-            if (is_admin())
-            {
-              // Don't show ordinary users the disabled status:  they are only going to see enabled rooms
-              echo "<td class=\"boolean\"><div>" . ((!$r['disabled']) ? "<img src=\"images/check.png\" alt=\"check mark\" width=\"16\" height=\"16\">" : "&nbsp;") . "</div></td>\n";
-            }
-            foreach($fields as $field)
-            {
-              if (!in_array($field['name'], $ignore))
-              {
-                switch ($field['name'])
-                {
-                  // the standard MRBS fields
-                  case 'description':
-                  case 'room_admin_email':
-                    echo "<td><div>" . htmlspecialchars($r[$field['name']]) . "</div></td>\n";
-                    break;
-                  case 'capacity':
-                    echo "<td class=\"int\"><div>" . $r[$field['name']] . "</div></td>\n";
-                    break;
-                  case 'invalid_types':
-                    echo "<td><div>" . get_type_names($r[$field['name']]) . "</div></td>\n";
-                    break;
-                  // any user defined fields
-                  default:
-                    if (($field['nature'] == 'boolean') ||
-                        (($field['nature'] == 'integer') && isset($field['length']) && ($field['length'] <= 2)) )
-                    {
-                      // booleans: represent by a checkmark
-                      echo "<td class=\"boolean\"><div>";
-                      echo (!empty($r[$field['name']])) ? "<img src=\"images/check.png\" alt=\"check mark\" width=\"16\" height=\"16\">" : "&nbsp;";
-                      echo "</div></td>\n";
-                    }
-                    elseif (($field['nature'] == 'integer') && isset($field['length']) && ($field['length'] > 2))
-                    {
-                      // integer values
-                      echo "<td class=\"int\"><div>" . $r[$field['name']] . "</div></td>\n";
-                    }
-                    else
-                    {
-                      // strings
-                      $value = $r[$field['name']];
-                      $html = "<td title=\"" . htmlspecialchars($value) . "\"><div>";
-                      // Truncate before conversion, otherwise you could chop off in the middle of an entity
-                      $html .= htmlspecialchars(utf8_substr($value, 0, $max_content_length));
-                      $html .= (utf8_strlen($value) > $max_content_length) ? '&hellip;' : '';
-                      $html .= "</div></td>\n";
-                      echo $html;
-                    }
-                    break;
-                }  // switch
-              }  // if
-            }  // foreach
-
-            // Give admins a delete button
-            if (is_admin())
-            {
-              echo "<td>\n<div>\n";
-              generate_room_delete_form($r['id'], $area);
-
-
-              echo "</div>\n</td>\n";
-            }
-
-            echo "</tr>\n";
-          }
-        }
-
-        echo "</tbody>\n";
-        echo "</table>\n";
-        echo "</div>\n";
-
-      }
-    }
+    display_rooms($area);
   }
   else
   {
