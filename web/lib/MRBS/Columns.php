@@ -1,23 +1,47 @@
 <?php
 namespace MRBS;
 
+use Countable;
+use Iterator;
 
 // Holds information about table columns
-class Columns implements \Countable, \Iterator
+// Implemented as a singleton class for performance reasons: it is
+// expensive getting the field info in the constructor.
+class Columns implements Countable, Iterator
 {
 
+  private static $instances = array();
   private $data;
   private $index = 0;
   private $table_name;
 
 
-  public function __construct($table_name)
+  private function __construct($table_name)
   {
     $this->$table_name = $table_name;
     // Get the column info
     $this->data = db()->field_info($table_name);
   }
 
+  private function __clone()
+  {
+  }
+
+  public function __wakeup()
+  {
+    // __wakeup() must have public visibility
+    throw new \Exception("Cannot unserialize a singleton.");
+  }
+
+  public static function getInstance($table_name)
+  {
+    if (!isset(self::$instances[$table_name]))
+    {
+      self::$instances[$table_name] = new self($table_name);
+    }
+
+    return self::$instances[$table_name];
+  }
 
   public function getNames()
   {
@@ -58,6 +82,8 @@ class Columns implements \Countable, \Iterator
     $info = $this->data[$this->index];
     $column = new Column($this->table_name, $info['name']);
     $column->setLength($info['length']);
+    $column->setDefault($info['default']);
+    $column->setIsNullable($info['is_nullable']);
 
     switch ($info['nature'])
     {
@@ -78,6 +104,9 @@ class Columns implements \Countable, \Iterator
         break;
       case 'real':
         $column->setNature(Column::NATURE_REAL);
+        break;
+      case 'time':
+        $column->setNature(Column::NATURE_TIME);
         break;
       case 'timestamp':
         $column->setNature(Column::NATURE_TIMESTAMP);
