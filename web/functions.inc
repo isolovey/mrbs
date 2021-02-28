@@ -96,6 +96,34 @@ function in_arrayi($needle, $haystack)
 }
 
 
+// Tests if two arrays have the same values. The test ignores the order of the values
+// and also ignores duplicated values.
+function array_values_equal(array $a, array $b)
+{
+  return !array_diff($a, $b) && !array_diff($b, $a);
+}
+
+
+// Returns a simple array consisting of all the leaf nodes of $array
+function array_values_recursive(array $array)
+{
+  $result = array();
+
+  foreach ($array as $value)
+  {
+    if (is_array($value))
+    {
+      $result = array_merge($result, array_values_recursive($value));
+    }
+    else
+    {
+      $result[] = $value;
+    }
+  }
+
+  return $result;
+}
+
 function generate_token($length)
 {
   if (function_exists('random_bytes'))
@@ -931,38 +959,40 @@ function print_footer($and_exit=false)
 }
 
 
-// Converts a duration of $dur seconds into a duration of
-// $dur $units
+// Converts a time of $seconds into a duration expressed as an array
+// indexed by 'value' and 'units'.
 // $max_unit can be set to 'seconds', 'minutes', 'hours', etc. and
 // is used to specify a maximum size of unit to use.  For example if
 // it is set to 'minutes', 3600 seconds will give 60 minutes rather
 // than 1 hour.
-function toTimeString(&$dur, &$units, $translate=true, $max_unit=null)
+function to_time_string($seconds, $translate=true, $max_unit=null)
 {
+  $value = $seconds;
+
   if (!isset($max_unit))
   {
     $max_unit = 'years';
   }
 
-  if (($max_unit != 'seconds') && (abs($dur) >= 60) && ($dur % 60 == 0))
+  if (($max_unit != 'seconds') && (abs($value) >= 60)  && ($value % 60 == 0))
   {
-    $dur /= 60;
+    $value /= 60;
 
-    if (($max_unit != 'minutes') && (abs($dur) >= 60) && ($dur % 60 == 0))
+    if (($max_unit != 'minutes') && (abs($value) >= 60) && ($value % 60 == 0))
     {
-      $dur /= 60;
+      $value /= 60;
 
-      if(($max_unit != 'hours') && ((abs($dur) >= 24) && ($dur % 24 == 0)))
+      if(($max_unit != 'hours') && ((abs($value) >= 24) && ($value % 24 == 0)))
       {
-        $dur /= 24;
+        $value /= 24;
 
-        if(($max_unit != 'days') && ((abs($dur) >= DAYS_PER_WEEK) && ($dur % DAYS_PER_WEEK == 0)))
+        if(($max_unit != 'days') && ((abs($value) >= DAYS_PER_WEEK) && ($value % DAYS_PER_WEEK == 0)))
         {
-          $dur /= DAYS_PER_WEEK;
+          $value /= DAYS_PER_WEEK;
 
-          if (($max_unit != 'weeks') && ((abs($dur) >= 52) && ($dur % 52 == 0)))
+          if (($max_unit != 'weeks') && ((abs($value) >= 52) && ($value % 52 == 0)))
           {
-            $dur  /= 52;
+            $value  /= 52;
             $units = 'years';
           }
           else
@@ -991,10 +1021,10 @@ function toTimeString(&$dur, &$units, $translate=true, $max_unit=null)
   }
 
   // Limit any floating point values to three decimal places
-  if (is_float($dur))
+  if (is_float($value))
   {
-    $dur = sprintf('%.3f', $dur);
-    $dur = rtrim($dur, '0');  // removes trailing zeros
+    $value = sprintf('%.3f', $value);
+    $value = rtrim($value, '0');  // removes trailing zeros
   }
 
   // Translate into local language if required
@@ -1002,36 +1032,41 @@ function toTimeString(&$dur, &$units, $translate=true, $max_unit=null)
   {
     $units = get_vocab($units);
   }
+
+  return (array('value' => $value, 'units' => $units));
 }
 
 
-// Converts a time period of $units into seconds, when it is originally
-// expressed in $dur_units.   (Almost the inverse of toTimeString(),
-// but note that toTimeString() can do language translation)
-function fromTimeString(&$units, $dur_units)
+// Converts a time period, expressed as an array indexed by 'value' and
+// 'units' into seconds.  (Almost the inverse of to_time_string(), but
+// note that to_time_string() can do language translation)
+function from_time_string(array $duration)
 {
-  if (!isset($units) || !isset($dur_units))
+  if (!isset($duration['value']) || !isset($duration['units']))
   {
-    return;
+    return null;
   }
 
-  switch($dur_units)
+  $result = (int) $duration['value'];
+
+  switch($duration['units'])
   {
     case "years":
-      $units *= 52;
+      $result *= 52;
     case "weeks":
-      $units *= DAYS_PER_WEEK;
+      $result *= DAYS_PER_WEEK;
     case "days":
-      $units *= 24;
+      $result *= 24;
     case "hours":
-      $units *= 60;
+      $result *= 60;
     case "periods":
     case "minutes":
-      $units *= 60;
+      $result *= 60;
     case "seconds":
       break;
   }
-  $units = (int) $units;
+
+  return $result;
 }
 
 
@@ -1082,12 +1117,14 @@ function get_period_interval($start_time, $end_time)
 }
 
 
-function toPeriodString($start_period, &$dur, &$units, $translate=true)
+// Converts a time of $seconds into a duration expressed as an array
+// indexed by 'value' and 'units'.
+function to_period_string($start_period, $seconds, $translate=true)
 {
   global $periods;
 
   $max_periods = count($periods);
-  $dur /= 60;  // duration now in minutes
+  $dur = $seconds/60;  // duration now in minutes
   $days = $dur / MINUTES_PER_DAY;
   $remainder = $dur % MINUTES_PER_DAY;
   // strip out any gap between the end of the last period on one day
@@ -1112,45 +1149,55 @@ function toPeriodString($start_period, &$dur, &$units, $translate=true)
     $dur = (intval($days) * $max_periods) + $remainder;
     $units = $translate ? get_vocab("periods") : "periods";
   }
+
+  return array('value' => $dur, 'units' => $units);
 }
 
-// Converts a period of $units starting at $start_period into seconds, when it is
-// originally expressed in $dur_units (periods or days).   (Almost the inverse of
-// toPeriodString(), but note that toPeriodString() can do language translation)
-function fromPeriodString($start_period, &$units, $dur_units)
+// Converts a time period, expressed as an array indexed by 'value' and
+// 'units' ('days' or 'periods') into seconds.  (Almost the inverse of
+// to_period_string(), but note that to_period_string() can do language translation)
+function from_period_string($start_period, array $duration)
 {
   global $periods;
 
-  if (!isset($units) || !isset($dur_units))
+  if (!isset($duration['value']) || !isset($duration['units']))
   {
-    return;
+    return null;
   }
+
+  $result = (int) $duration['value'];
 
   // First get the duration in minutes
   $max_periods = count($periods);
-  if ($dur_units == "periods")
+  if ($duration['units'] == "periods")
   {
-    $end_period = $start_period + $units;
+    $end_period = $start_period + $result;
     if ($end_period > $max_periods)
     {
-      $units = (MINUTES_PER_DAY * floor($end_period/$max_periods)) + ($end_period%$max_periods) - $start_period;
+      $result = (MINUTES_PER_DAY * floor($end_period/$max_periods)) + ($end_period%$max_periods) - $start_period;
     }
   }
-  if ($dur_units == "days")
+  elseif ($duration['units'] == "days")
   {
     if ($start_period == 0)
     {
-      $units = $max_periods + ($units-1)*MINUTES_PER_DAY;
+      $result = $max_periods + ($result - 1)*MINUTES_PER_DAY;
     }
     else
     {
-      $units = $units * MINUTES_PER_DAY;
+      $result = $result * MINUTES_PER_DAY;
     }
+  }
+  else
+  {
+    throw new \Exception("Unknown units '" . $duration['units'] . "'");
   }
 
   // Then convert into seconds
-  $units = (int) $units;
-  $units = 60 * $units;
+  $result = (int) $result;
+  $result = 60 * $result;
+
+  return $result;
 }
 
 
@@ -1383,7 +1430,7 @@ function fit_to_booking_day($t, $back=true)
 // DST changes so that the duration is what the user would expect to see.  For
 // example 12 noon to 12 noon crossing a DST boundary is 24 hours.
 //
-// Returns an array indexed by 'duration' and 'dur_units'
+// Returns an array indexed by 'value' and 'units'
 //
 //    $start_time     int     start time as a Unix timestamp
 //    $end_time       int     end time as a Unix timestamp
@@ -1393,31 +1440,37 @@ function get_duration($start_time, $end_time, $enable_periods, $area_id, $transl
 {
   $result = array();
 
-  $period_names = get_period_names();
+  static $periods = array();
+
+  if (!isset($periods[$area_id]))
+  {
+    $periods[$area_id] = Area::getById($area_id)->periods;
+  }
 
   if ($enable_periods)
   {
-    $periods_per_day = count($period_names[$area_id]);
+    $periods_per_day = count($periods[$area_id]);
     $n_periods = get_period_interval($start_time, $end_time);  // this handles DST
     if (($n_periods % $periods_per_day) == 0)
     {
-      $result['duration'] =  intval($n_periods/$periods_per_day);
-      $result['dur_units'] = ($translate) ? get_vocab('days') : 'days';
+      $result['value'] =  intval($n_periods/$periods_per_day);
+      $result['units'] = ($translate) ? get_vocab('days') : 'days';
     }
     else
     {
-      $result['duration'] = $n_periods;
-      $result['dur_units'] = ($translate) ? get_vocab('periods') : 'periods';
+      $result['value'] = $n_periods;
+      $result['units'] = ($translate) ? get_vocab('periods') : 'periods';
     }
   }
   else
   {
-    $result['duration'] = $end_time - $start_time;
+    $seconds = $end_time - $start_time;
     // Need to make DST correct in opposite direction to entry creation
-    // so that user see what he expects to see
-    $result['duration'] -= cross_dst($start_time, $end_time);
-    toTimeString($result['duration'], $result['dur_units'], $translate);
+    // so that users see what they expect to see
+    $seconds -= cross_dst($start_time, $end_time);
+    $result = to_time_string($seconds, $translate);
   }
+
   return $result;
 }
 
@@ -1432,7 +1485,7 @@ function escape_js($str)
 }
 
 
-// Return a default area; used if no area is already known. This returns the
+// Return a default area id; used if no area is already known. This returns the
 // area that contains the default room (if it is set, valid and enabled) otherwise the
 // first area in alphabetical order in the database (no guarantee there is an area 1).
 // The area must be enabled for it to be considered.
@@ -1441,172 +1494,79 @@ function get_default_area()
 {
   global $default_room;
 
-  // It's possible that this function is being called during an upgrade
-  // process before the disabled column existed.
-  $disabled_field_exists = db()->field_exists(_tbl('room'), 'disabled');
-
   // If the $default_room is set and exists and is enabled and is visible to
   // the current user, then return the corresponding area
-  if (isset($default_room) && is_visible($default_room))
+  if (isset($default_room))
   {
-    $sql = "SELECT area_id
-              FROM " . _tbl('room') . " R, " . _tbl('area') . " A
-             WHERE R.id=:id
-               AND R.area_id = A.id";
-
-    if ($disabled_field_exists)
+    $room = Room::getById($default_room);
+    if (isset($room) &&
+        !$room->isDisabled() &&
+        $room->isVisible())
     {
-      $sql .= " AND R.disabled = 0 AND A.disabled = 0";
-    }
-
-    $sql .= " LIMIT 1";
-    $area = db()->query1($sql, array(':id' => $default_room));
-
-    if ($area >= 0)
-    {
-      return $area;
+      return $room->area_id;
     }
   }
 
   // Otherwise return the first enabled area in the database that has an
   // enabled and visible room
-  $sql = "SELECT R.id, R.area_id
-            FROM " . _tbl('room') . " R, " . _tbl('area') . " A
-           WHERE R.area_id = A.id";
-
-  if ($disabled_field_exists)
+  $rooms = new Rooms();
+  foreach ($rooms as $room)
   {
-    $sql .= " AND R.disabled = 0 AND A.disabled = 0";
-  }
-
-  $order_by_column = (db()->field_exists(_tbl('area'), 'sort_key')) ? 'sort_key' : 'area_name';
-  $sql .= " ORDER BY A.$order_by_column";
-
-  $res = db()->query($sql);
-
-  while (false !== ($row = $res->next_row_keyed()))
-  {
-    if (is_visible($row['id']))
+    if (isset($room) &&
+        !$room->isDisabled() &&
+        $room->isVisible())
     {
-      return $row['area_id'];
+      return $room->area_id;
     }
   }
 
   return 0;
 }
 
-// Return a default room given a valid area; used if no room is already known.
+// Return a default room id given a valid area; used if no room is already known.
 // If the area contains $default_room and $default_room is visible to the current
 // user, then it returns $default_room. Otherwise it returns the first visible room
 // in sort_key order in the database.
 // This could be changed to implement something like per-user defaults.
-function get_default_room($area)
+function get_default_room($area_id)
 {
   global $default_room;
 
-  // It's possible that this function is being called during
-  // an upgrade process before the disabled columns existed.
-  $disabled_field_exists = db()->field_exists(_tbl('room'), 'disabled');
-
-  // Check to see whether this area contains $default_room
+  // Check to see whether this area contains $default_room and that the room
+  // is enabled and visible.
   if (isset($default_room))
   {
-    $sql = "SELECT id
-              FROM " . _tbl('room') . "
-             WHERE id=:id AND area_id=:area_id";
-
-    if ($disabled_field_exists)
+    $room = Room::getById($default_room);
+    // Test for visibility last as that is the most expensive test
+    if (isset($room) &&
+        ($room->area_id == $area_id) &&
+        !$room->isDisabled() &&
+        $room->isVisible())
     {
-      $sql .= " AND disabled=0";
-    }
-
-    $sql .= " LIMIT 1";
-    $sql_params = array(':id' => $default_room, ':area_id' => $area);
-    $room = db()->query1($sql, $sql_params);
-
-    if (($room >= 0) && is_visible($room))
-    {
-      return $room;
+      return $room->id;
     }
   }
 
   // Otherwise just return the first visible room in the area
-  $rooms = get_rooms($area, !$disabled_field_exists);
-
-  return (count($rooms) > 0) ? $rooms[0]['id'] : 0;
-}
-
-
-// Return an area id for a given room
-function get_area($room)
-{
-  $sql = "SELECT area_id
-            FROM " . _tbl('room') . "
-           WHERE id=?
-           LIMIT 1";
-
-  $area = db()->query1($sql, array($room));
-
-  return ($area < 0 ? 0 : $area);
-}
-
-
-// Clean up a row from the area table, making sure there are no nulls, casting
-// boolean fields into bools and doing some sanity checking
-function clean_area_row($row)
-{
-  global $force_resolution, $area_defaults, $boolean_fields, $private_override_options;
-
-  // This code can get called during the upgrade process and so must
-  // not make any assumptions about the existence of extra columns in
-  // the area table.
-  foreach ($row as $key => $value)
+  $rooms = new Rooms($area_id);
+  foreach ($rooms as $room)
   {
-    if (array_key_exists($key, $area_defaults))
+    if (!$room->isDisabled() && $room->isVisible())
     {
-      // If the "per area" setting is in the database, then use that.   Otherwise
-      // just stick with the default setting from the config file.
-      // (don't use the database setting if $force_resolution is TRUE
-      // and we're looking at the resolution field)
-      if (!isset($row[$key]) ||
-          (($key == 'resolution') && !empty($force_resolution) && empty($row['enable_periods'])) )
-      {
-        $row[$key] = $area_defaults[$key];
-      }
-      // Cast those fields which are booleans into booleans
-      if (in_array($key, $boolean_fields['area']))
-      {
-        $row[$key] = (bool) $row[$key];
-      }
+      return $room->id;
     }
   }
 
-  // Do some sanity checking in case the area table is somehow messed up
-  // (1) 'private_override' must be a valid value
-  if (array_key_exists('private_override', $row) &&
-      !in_array($row['private_override'], $private_override_options))
-  {
-    $row['private_override'] = 'private';  // the safest default
-    $message = "Invalid value for 'private_override' in the area table.  Using '${row['private_override']}'.";
-    trigger_error($message, E_USER_WARNING);
-  }
-  // (2) 'resolution' must be positive
-  if (array_key_exists('resolution', $row) &&
-      (empty($row['resolution']) || ($row['resolution'] < 0)))
-  {
-    $row['resolution'] = 30*60;  // 30 minutes, a reasonable fallback
-    $message = "Invalid value for 'resolution' in the area table.   Using ${row['resolution']} seconds.";
-    trigger_error($message, E_USER_WARNING);
-  }
-
-  return $row;
+  // If all else fails
+  return 0;
 }
 
 
 // Update the default area settings with the ones specific to this area.
 // If no value is set in the database, use the value from the config file.
 // If $area is empty, use the default area
-function get_area_settings($area)
+// TODO: Rewrite all of this so that the global variables aren't overwritten
+function get_area_settings($area_id)
 {
   global $auth;
   global $resolution, $default_duration, $default_duration_all_day;
@@ -1621,13 +1581,14 @@ function get_area_settings($area)
   global $max_secs_per_interval_area_enabled, $max_secs_per_interval_area;
   global $interval_types;
   global $times_along_top, $default_type;
+  global $periods_booking_opens;
 
   // This code can get called during the upgrade process and so must
   // not make any assumptions about the existence of extra columns in
   // the area table.
-  if (empty($area))
+  if (empty($area_id))
   {
-    $area = get_default_area();
+    $area_id = get_default_area();
   }
 
   // Get all the "per area" config settings
@@ -1652,40 +1613,27 @@ function get_area_settings($area)
                    'max_secs_per_future_enabled', 'max_secs_per_future',
                    'approval_enabled', 'reminders_enabled', 'enable_periods', 'periods',
                    'confirmation_enabled', 'confirmed_default',
-                   'times_along_top', 'default_type');
+                   'times_along_top', 'default_type', 'periods_booking_opens');
 
-  $sql = "SELECT *
-            FROM " . _tbl('area') . "
-           WHERE id=?
-           LIMIT 1";
+  $area = Area::getById($area_id);
 
-  $res = db()->query($sql, array($area));
-  if ($res->count() == 0)
+  if (!isset($area))
   {
     // We still need to set the timezone even if the query didn't
     // return any results
     mrbs_default_timezone_set($timezone);
     return;
   }
-  else
+
+  // Set the global variables
+  foreach ($columns as $column)
   {
-    $row = $res->next_row_keyed();
-
-    // Periods are stored as a JSON encoded string in the database
-    if (isset($row['periods']))
+    if ($area->hasProperty($column))
     {
-      $row['periods'] = json_decode($row['periods']);
-    }
-
-    $row = clean_area_row($row);
-    foreach ($columns as $column)
-    {
-      if (array_key_exists($column, $row))
-      {
-        $$column = $row[$column];
-      }
+      $$column = $area->$column;
     }
   }
+
   // Set the timezone
   mrbs_default_timezone_set($timezone);
 
@@ -1717,28 +1665,6 @@ function get_area_settings($area)
     {
       $max_secs_per_interval_area[$interval_type] = $$var;
     }
-  }
-
-  // Sanitise the settings
-  if ($enable_periods)
-  {
-    $resolution = 60;
-    $morningstarts = 12;
-    $morningstarts_minutes = 0;
-    $eveningends = 12;
-    $eveningends_minutes = count($periods) - 1;
-  }
-  elseif (!isset($morningstarts_minutes))
-  {
-    // ensure that $morningstarts_minutes defaults to zero if not set
-    $morningstarts_minutes = 0;
-  }
-
-  // If it's been set in the config settings then force all bookings to be shown
-  // as private for users who haven't logged in.
-  if ($auth['force_private_for_guests'] && (null === session()->getCurrentUser()))
-  {
-    $private_override = 'private';
   }
 }
 
@@ -1879,44 +1805,55 @@ function hour_min($s)
 }
 
 
+// Returns the index of the period represented by $s nominal seconds
+function period_index($s)
+{
+  // Periods are counted as minutes from noon, ie 1200 is $period[0],
+  // 1201 $period[1], etc.
+  return intval($s/60) - (12*60);
+}
+
+
+// Returns the name of the period represented by nominal seconds $s
+function period_name($s)
+{
+  global $periods;
+
+  return $periods[period_index($s)];
+}
+
+
+// Returns the name of the period represented by Unix timestamp $t for area $area_id.
+// $mod_time will get the period $mod_time units before or after.
+function period_time_string($t, $area_id, $mod_time=0)
+{
+  static $periods = array();
+
+  if (!isset($periods[$area_id]))
+  {
+    $periods[$area_id] = Area::getById($area_id)->periods;
+  }
+
+  $time = getdate($t);
+  $p = $time['minutes'] + $mod_time;
+  // Make sure the period is valid
+  $p = max($p, 0);
+  $p = min($p, count($periods[$area_id]) - 1);
+
+  return $periods[$area_id][$p];
+}
+
+
 function period_date_string($t, $area_id, $mod_time=0)
 {
   global $strftime_format;
 
-  $period_names = get_period_names();
-
-  $time = getdate($t);
-  $p_num = $time["minutes"] + $mod_time;
-  if( $p_num < 0 )
-  {
-    $p_num = 0;
-  }
-  if( $p_num >= count($period_names[$area_id]) - 1 )
-  {
-    $p_num = count($period_names[$area_id]) - 1;
-  }
   // The separator is a ',' as a '-' leads to an ambiguous
   // display in report.php when showing end times.
-  return array($p_num, $period_names[$area_id][$p_num] . utf8_strftime(", " . $strftime_format['date'], $t));
+  return period_time_string($t, $area_id, $mod_time) .
+         utf8_strftime(', ' . $strftime_format['date'], $t);
 }
 
-
-function period_time_string($t, $area_id, $mod_time=0)
-{
-  $period_names = get_period_names();
-
-  $time = getdate($t);
-  $p_num = $time["minutes"] + $mod_time;
-  if ( $p_num < 0 )
-  {
-    $p_num = 0;
-  }
-  if ( $p_num >= count($period_names[$area_id]) - 1 )
-  {
-    $p_num = count($period_names[$area_id]) - 1;
-  }
-  return $period_names[$area_id][$p_num];
-}
 
 function time_date_string($t)
 {
@@ -1931,6 +1868,13 @@ function time_date_string($t)
     return utf8_strftime($strftime_format['datetime12'], $t);
   }
 }
+
+
+function date_string($use_periods, $t, $area_id, $mod_time=0)
+{
+  return ($use_periods) ? period_date_string($t, $area_id, $mod_time=0) : time_date_string($t);
+}
+
 
 // version of the standard PHP function nl2br() that takes account of the fact
 // that the optional second parameter is only available from PHP 5.3.0 onwards.
@@ -2039,24 +1983,6 @@ function nominal_seconds($t)
     $date['hours'] += 24;
   }
   return (($date['hours'] * 60) + $date['minutes']) * 60;
-}
-
-
-// Returns the index of the period represented by $s nominal seconds
-function period_index($s)
-{
-  // Periods are counted as minutes from noon, ie 1200 is $period[0],
-  // 1201 $period[1], etc.
-  return intval($s/60) - (12*60);
-}
-
-
-// Returns the name of the period represented by nominal seconds $s
-function period_name($s)
-{
-  global $periods;
-
-  return $periods[period_index($s)];
 }
 
 
