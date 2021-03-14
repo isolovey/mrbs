@@ -42,11 +42,12 @@ function make_area_select_html($view, $year, $month, $day, $current)
 
   $out_html = '';
 
-  $areas = get_area_names();
+  $areas = new Areas();
+  $options = $areas->getNames();
 
   // Only show the areas if there are more than one of them, otherwise
   // there's no point
-  if (count($areas) > 1)
+  if (count($options) > 1)
   {
     $page_date = format_iso_date($year, $month, $day);
 
@@ -69,7 +70,7 @@ function make_area_select_html($view, $year, $month, $day, $current)
                                  'name'       => 'area',
                                  'aria-label' => get_vocab('select_area'),
                                  'onchange'   => 'this.form.submit()'))
-           ->addSelectOptions($areas, $current, true);
+           ->addSelectOptions($options, $current, true);
     $form->addElement($select);
 
     // Note:  the submit button will not be displayed if JavaScript is enabled
@@ -91,13 +92,13 @@ function make_room_select_html ($view, $view_all, $year, $month, $day, $area, $c
 
   $out_html = '';
 
-  $rooms = get_room_names($area);
+  $rooms = new Rooms($area);
   $n_rooms = count($rooms);
 
   if ($n_rooms > 0)
   {
     $page_date = format_iso_date($year, $month, $day);
-    $options = $rooms;
+    $options = $rooms->getNames();
 
     // If we are in the week or month views and there is more than one room, then add the 'all'
     // option to the room select, which allows the user to display all rooms in the view.
@@ -413,10 +414,14 @@ if ($room < 0)
 $is_ajax = is_ajax();
 
 // If we're using the 'db' authentication type, check to see if MRBS has just been installed
-// and, if so, redirect to the edit_users page so that they can set up users.
-if (($auth['type'] == 'db') && (count(auth()->getUsers()) == 0))
+// and, if so, redirect to the edit_user page so that they can set up users.
+if ($auth['type'] == 'db')
 {
-  location_header('edit_users.php');
+  $users = new Users();
+  if (count($users) == 0)
+  {
+    location_header('edit_user.php');
+  }
 }
 
 // Check the user is authorised for this page
