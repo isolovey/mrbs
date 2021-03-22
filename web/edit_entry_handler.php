@@ -132,14 +132,20 @@ foreach($form_vars as $var => $var_type)
 // Convert the registration opens and closes times into seconds
 if (isset($registration_opens_value) && isset($registration_opens_units))
 {
-  fromTimeString($registration_opens_value, $registration_opens_units);
-  $registration_opens = constrain_int($registration_opens_value, 4);
+  $registration_opens = from_time_string(array(
+    'value' => $registration_opens_value,
+    'units' => $registration_opens_units
+  ));
+  $registration_opens = constrain_int($registration_opens, 4);
 }
 
 if (isset($registration_closes_value) && isset($registration_closes_units))
 {
-  fromTimeString($registration_closes_value, $registration_closes_units);
-  $registration_closes = constrain_int($registration_closes_value, 4);
+  $registration_closes = from_time_string(array(
+    'value' => $registration_closes_value,
+    'units' => $registration_closes_units
+  ));
+  $registration_closes = constrain_int($registration_closes, 4);
 }
 
 // Convert the booleans (the custom field booleans are done later)
@@ -344,11 +350,16 @@ else
 }
 
 // Make sure the area corresponds to the room that is being booked
-$area = get_area($rooms[0]);
-get_area_settings($area);  // Update the area settings
+$area = Room::getAreaId($rooms[0]);
+if (!isset($area))
+{
+  $area = get_default_area();
+}
+// Update the area settings
+get_area_settings($area);
 
-// and that $room is in $area
-if (get_area($room) != $area)
+// Make sure that $room is in $area
+if (Room::getAreaId($room) != $area)
 {
   $room = get_default_room($area);
 }
