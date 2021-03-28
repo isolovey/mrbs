@@ -384,9 +384,9 @@ function time_cell_html($s, $url)
 }
 
 // Draw a room cell to be used in the header rows/columns of the calendar views
-//    $room    contains the room details
+//    $room    a Room object
 //    $vars    an associative array containing the variables to be used to build the link
-function room_cell_html(array $room, array $vars)
+function room_cell_html(Room $room, array $vars)
 {
   $link = 'index.php?' . http_build_query($vars, '', '&');
   $link = multisite($link);
@@ -403,24 +403,24 @@ function room_cell_html(array $room, array $vars)
       $tag = 'viewmonth';
       break;
     default:
-      trigger_error("Unknown view '$view'", E_USER_NOTICE);
+      trigger_error("Unknown view '" . $vars['view'] . "'", E_USER_NOTICE);
       $tag = 'viewweek';
       break;
   }
 
-  $title = get_vocab($tag) . "\n\n" . $room['description'];
+  $title = get_vocab($tag) . "\n\n" . $room->description;
   $html = '';
-  $html .= '<th data-room="' . htmlspecialchars($room['id']) . '">';
+  $html .= '<th data-room="' . htmlspecialchars($room->id) . '">';
   $html .= '<a href="' . htmlspecialchars($link) . '"' .
            ' title = "' . htmlspecialchars($title) . '">';
-  $html .= htmlspecialchars($room['room_name']);
+  $html .= htmlspecialchars($room->room_name);
   // Put the capacity in a span to give flexibility in styling
   $html .= '<span class="capacity';
-  if ($room['capacity'] == 0)
+  if ($room->capacity == 0)
   {
     $html .= ' zero';
   }
-  $html .= '">' . htmlspecialchars($room['capacity']);
+  $html .= '">' . htmlspecialchars($room->capacity);
   $html .= '</span>';
   $html .= '</a>';
   $html .= "</th>\n";
@@ -570,13 +570,17 @@ function get_times_header_cells($start, $end, $increment)
 }
 
 
-function get_rooms_header_cells($rooms, $vars)
+function get_rooms_header_cells(Rooms $rooms, $vars)
 {
   $html = '';
 
   foreach($rooms as $room)
   {
-    $vars['room'] = $room['id'];
+    if ($room->isDisabled() || !$room->isVisible())
+    {
+      continue;
+    }
+    $vars['room'] = $room->id;
     $html .= room_cell_html($room, $vars);
   }
 
@@ -590,10 +594,9 @@ function day_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $ti
   global $times_along_top, $row_labels_both_sides, $column_labels_both_ends;
   global $resolution, $morningstarts, $morningstarts_minutes;
 
-  $rooms = get_rooms($area_id);
-  $n_rooms = count($rooms);
+  $rooms = new Rooms($area_id);
 
-  if ($n_rooms == 0)
+  if ($rooms->countVisible() == 0)
   {
     // Add an 'empty' data flag so that the JavaScript knows whether this is a real table or not
     return "<tbody data-empty=1><tr><td><h1>" . get_vocab("no_rooms_for_area") . "</h1></td></tr></tbody>";
@@ -622,9 +625,9 @@ function day_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $ti
 
   foreach ($rooms as $room)
   {
-    if (isset($today[$room['id']]))
+    if (isset($today[$room->id]))
     {
-      map_coalesce_bookings($today[$room['id']][$day]);
+      map_coalesce_bookings($today[$room->id][$day]);
     }
   }
 
@@ -711,6 +714,11 @@ function day_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $ti
     // with times along the top and rooms down the side
     foreach ($rooms as $room)
     {
+      if ($room->isDisabled() || !$room->isVisible())
+      {
+        continue;
+      }
+
       $tbody .= "<tr>\n";
 
       $vars = array('view'     => 'week',
@@ -719,7 +727,7 @@ function day_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $ti
                     'month'    => $month,
                     'day'      => $day,
                     'area'     => $area_id,
-                    'room'     => $room['id']);
+                    'room'     => $room->id);
 
       $row_label = room_cell_html($room, $vars);
       $tbody .= $row_label;
@@ -735,14 +743,14 @@ function day_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $ti
           $is_invalid[$s] = $is_possibly_invalid && is_invalid_datetime(0, 0, $s, $month, $day, $year);
         }
         // set up the query vars to be used for the link in the cell
-        $query_vars = get_query_vars($view, $area_id, $room['id'], $month, $day, $year, $s);
+        $query_vars = get_query_vars($view, $area_id, $room->id, $month, $day, $year, $s);
 
         // and then draw the cell
-        if (!isset($today[$room['id']][$day][$s]))
+        if (!isset($today[$room->id][$day][$s]))
         {
-          $today[$room['id']][$day][$s] = array();
+          $today[$room->id][$day][$s] = array();
         }
-        $tbody .= cell_html($today[$room['id']][$day][$s], $query_vars, $is_invalid[$s]);
+        $tbody .= cell_html($today[$room->id][$day][$s], $query_vars, $is_invalid[$s]);
       }  // end for (looping through the times)
       if ( false != $row_labels_both_sides )
       {
@@ -799,15 +807,20 @@ function day_table_innerhtml($view, $year, $month, $day, $area_id, $room_id, $ti
       // Loop through the list of rooms we have for this area
       foreach ($rooms as $room)
       {
-        // set up the query vars to be used for the link in the cell
-        $query_vars = get_query_vars($view, $area_id, $room['id'], $month, $day, $year, $s);
-
-        if (!isset($today[$room['id']][$day][$s]))
+        if ($room->isDisabled() || !$room->isVisible())
         {
-          $today[$room['id']][$day][$s] = array();
+          continue;
         }
 
-        $tbody .= cell_html($today[$room['id']][$day][$s], $query_vars, $is_invalid);
+        // set up the query vars to be used for the link in the cell
+        $query_vars = get_query_vars($view, $area_id, $room->id, $month, $day, $year, $s);
+
+        if (!isset($today[$room->id][$day][$s]))
+        {
+          $today[$room->id][$day][$s] = array();
+        }
+
+        $tbody .= cell_html($today[$room->id][$day][$s], $query_vars, $is_invalid);
       }
 
       // next lines to display times on right side
@@ -935,11 +948,9 @@ function multiday_view_all_rooms_innerhtml($view, $view_all, $year, $month, $day
   // case people want a transposed view in future.
   $days_along_top = true;
 
-  $rooms = get_rooms($area_id);
-  $n_rooms = count($rooms);
+  $rooms = new Rooms($area_id);
 
-  // Check to see whether there are any rooms in the area
-  if ($n_rooms == 0)
+  if ($rooms->countVisible() == 0)
   {
     // Add an 'empty' data flag so that the JavaScript knows whether this is a real table or not
     return "<tbody data-empty=1><tr><td><h1>" . get_vocab("no_rooms_for_area") . "</h1></td></tr></tbody>";
@@ -993,9 +1004,9 @@ function multiday_view_all_rooms_innerhtml($view, $view_all, $year, $month, $day
     }
     foreach ($rooms as $room)
     {
-      if (isset($interval[$room['id']]))
+      if (isset($interval[$room->id]))
       {
-        map_coalesce_bookings($interval[$room['id']][$d]);
+        map_coalesce_bookings($interval[$room->id][$d]);
       }
     }
   }
@@ -1084,8 +1095,12 @@ function multiday_view_all_rooms_innerhtml($view, $view_all, $year, $month, $day
     // the standard view, with days along the top and rooms down the side
     foreach ($rooms as $room)
     {
-      $room_id = $room['id'];
-      $room_link_vars['room'] = $room_id;
+      if ($room->isDisabled() || !$room->isVisible())
+      {
+        continue;
+      }
+
+      $room_link_vars['room'] = $room->id;
       $tbody .= "<tr>\n";
       $row_label = room_cell_html($room, $room_link_vars);
       $tbody .= $row_label;
@@ -1104,7 +1119,7 @@ function multiday_view_all_rooms_innerhtml($view, $view_all, $year, $month, $day
             'view_all'  => $view_all,
             'page_date' => format_iso_date($year, $month, $d),
             'area'      => $area_id,
-            'room'      => $room['id']
+            'room'      => $room->id
           );
 
         $link = "index.php?" . http_build_query($vars, '', '&');
@@ -1114,13 +1129,13 @@ function multiday_view_all_rooms_innerhtml($view, $view_all, $year, $month, $day
         $slots = 0;
         while ($s <= $evening_slot_seconds)
         {
-          if (isset($interval[$room_id][$d][$s]))
+          if (isset($interval[$room->id][$d][$s]))
           {
             if ($slots > 0)
             {
               $tbody .= get_flex_div($slots, 'free');
             }
-            $this_entry = $interval[$room_id][$d][$s][0];
+            $this_entry = $interval[$room->id][$d][$s][0];
             $n =    $this_entry['n_slots'];
             $text = $this_entry['name'];
             $classes = get_entry_classes($this_entry);
@@ -1237,10 +1252,9 @@ function week_room_table_innerhtml($view, $view_all, $year, $month, $day, $area_
   global $resolution, $morningstarts, $morningstarts_minutes;
   global $weekstarts, $strftime_format;
 
-  // Check that we've got a valid, enabled room
-  $room_name = get_room_name($room_id);
-
-  if (is_null($room_name) || (!is_visible($room_id)))
+  // Check that we've got a valid, enabled and visible room
+  $room = Room::getById($room_id);
+  if (!isset($room) || $room->isDisabled() || !$room->isVisible())
   {
     // No rooms have been created yet, or else they are all disabled
     // Add an 'empty' data flag so that the JavaScript knows whether this is a real table or not
@@ -1657,14 +1671,15 @@ function month_table_innerhtml($view, $view_all, $year, $month, $day, $area, $ro
 }
 
 
-function month_room_table_innerhtml($view, $view_all, $year, $month, $day, $area, $room)
+function month_room_table_innerhtml($view, $view_all, $year, $month, $day, $area_id, $room_id)
 {
   global $weekstarts, $view_week_number, $show_plus_link, $monthly_view_entries_details;
   global $enable_periods, $morningstarts, $morningstarts_minutes;
   global $is_private_field;
 
-  // Check that we've got a valid, enabled room
-  if (is_null(get_room_name($room)) || !is_visible($room))
+  // Check that we've got a valid, enabled and visible room
+  $room = Room::getById($room_id);
+  if (!isset($room) || $room->isDisabled() || !$room->isVisible())
   {
     // No rooms have been created yet, or else they are all disabled
     // Add an 'empty' data flag so that the JavaScript knows whether this is a real table or not
@@ -1695,7 +1710,7 @@ function month_room_table_innerhtml($view, $view_all, $year, $month, $day, $area
 
   // Get the data.  It's much quicker to do a single SQL query getting all the
   // entries for the interval in one go, rather than doing a query for each day.
-  $entries = get_entries_by_room($room,
+  $entries = get_entries_by_room($room_id,
                                  get_start_first_slot($month, 1, $year),
                                  get_end_last_slot($month, $days_in_month, $year));
 
@@ -1736,8 +1751,8 @@ function month_room_table_innerhtml($view, $view_all, $year, $month, $day, $area
       $vars = array('year'  => $year,
                     'month' => $month,
                     'day'   => $d,
-                    'area'  => $area,
-                    'room'  => $room);
+                    'area'  => $area_id,
+                    'room'  => $room_id);
 
       // If it's a Monday (the start of the ISO week), show the week number
       if ($view_week_number && (($weekcol + $weekstarts)%DAYS_PER_WEEK == 1))
@@ -1792,7 +1807,7 @@ function month_room_table_innerhtml($view, $view_all, $year, $month, $day, $area
 
         // Handle private events
         if (is_private_event($entry['private']) &&
-            !getWritable($entry['create_by'], $room))
+            !getWritable($entry['create_by'], $room_id))
         {
           $entry['private'] = true;
           if ($is_private_field['entry.name'])
