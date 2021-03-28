@@ -46,8 +46,8 @@ function create_details_body($data, $as_html=false, $keep_private=false, $room_d
   {
     // We will translate the units later
     $d = get_duration($data['start_time'], $data['end_time'], $enable_periods, $data['area_id'], false);
-    $data['duration'] = $d['duration'];
-    $data['dur_units'] = $d['dur_units'];
+    $data['duration'] = $d['value'];
+    $data['dur_units'] = $d['units'];
   }
 
   // Set a rep_type if it hasn't been
@@ -183,14 +183,7 @@ function create_details_body($data, $as_html=false, $keep_private=false, $room_d
 
       case 'start_time':
         // Start date
-        if ($enable_periods)
-        {
-          list($start_period, $start_date) =  period_date_string($data['start_time'], $data['area_id']);
-        }
-        else
-        {
-          $start_date = time_date_string($data['start_time']);
-        }
+        $start_date =  date_string($enable_periods, $data['start_time'], $data['area_id']);
         $tbody .= create_details_row(get_vocab("start_date"), $start_date, $as_html);
         // Duration
         $tbody .= create_details_row(get_vocab("duration"), $data['duration'] . " " . get_vocab($data['dur_units']), $as_html);
@@ -198,14 +191,7 @@ function create_details_body($data, $as_html=false, $keep_private=false, $room_d
 
       case 'end_time':
         // End date
-        if ($enable_periods)
-        {
-          list( , $end_date) =  period_date_string($data['end_time'], $data['area_id'], -1);
-        }
-        else
-        {
-          $end_date = time_date_string($data['end_time']);
-        }
+        $end_date =  date_string($enable_periods, $data['end_time'], $data['area_id'], -1);
         $tbody .= create_details_row(get_vocab("end_date"), $end_date, $as_html);
         break;
 

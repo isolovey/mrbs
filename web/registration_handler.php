@@ -31,7 +31,7 @@ function cancel($registration_id)
   }
 
   // They are authorised, so go ahead and delete the registration
-  $sql = "DELETE FROM " . _tbl('participants') . "
+  $sql = "DELETE FROM " . _tbl('participant') . "
                 WHERE id=:registration_id";
 
   $sql_params = array(
@@ -61,7 +61,7 @@ function register($username, $event_id)
 
   // Obtain a lock to make sure no one else registers after we've checked that there
   // are spare places
-  db()->mutex_lock(_tbl('participants'));
+  db()->mutex_lock(_tbl('participant'));
 
   $data = get_booking_info($event_id, false);
 
@@ -79,7 +79,7 @@ function register($username, $event_id)
         $mrbs_user = session()->getCurrentUser();
         $mrbs_username = (isset($mrbs_user)) ? $mrbs_user->username : null;
         // then register the user
-        $sql = "INSERT INTO " . _tbl('participants') . " (entry_id, username, create_by, registered)
+        $sql = "INSERT INTO " . _tbl('participant') . " (entry_id, username, create_by, registered)
                      VALUES (:entry_id, :username, :create_by, :registered)";
 
         $sql_params = array(
@@ -95,7 +95,7 @@ function register($username, $event_id)
   }
 
   // Release the lock
-  db()->mutex_unlock(_tbl('participants'));
+  db()->mutex_unlock(_tbl('participant'));
 }
 
 // Check the CSRF token.

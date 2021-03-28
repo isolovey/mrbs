@@ -87,7 +87,7 @@ function get_fieldset_errors(array $errors)
 }
 
 
-function get_fieldset_general(array $data)
+function get_fieldset_general(Area $area)
 {
   global $timezone, $auth;
 
@@ -101,7 +101,7 @@ function get_fieldset_general(array $data)
                                      'name'      => 'area_name',
                                      'required'  => true,
                                      'maxlength' => maxlength('area.area_name'),
-                                     'value'     => $data['area_name']));
+                                     'value'     => $area->area_name));
   $fieldset->addElement($field);
 
   // Sort key
@@ -110,7 +110,7 @@ function get_fieldset_general(array $data)
         ->setLabelAttributes(array('title' => get_vocab('sort_key_note')))
         ->setControlAttributes(array('id'    => 'sort_key',
                                      'name'  => 'sort_key',
-                                     'value' => $data['sort_key'],
+                                     'value' => $area->sort_key,
                                      'maxlength' => maxlength('area.sort_key')));
   $fieldset->addElement($field);
 
@@ -120,7 +120,7 @@ function get_fieldset_general(array $data)
     ->setLabelAttribute('title', get_vocab('email_list_note'))
     ->setControlAttributes(array('id'       => 'area_admin_email',
       'name'     => 'area_admin_email',
-      'value'    => $data['area_admin_email'],
+      'value'    => $area->area_admin_email,
       'multiple' => true));
   $fieldset->addElement($field);
 
@@ -131,7 +131,7 @@ function get_fieldset_general(array $data)
     $field->setLabel(get_vocab('custom_html'))
       ->setLabelAttribute('title', get_vocab('custom_html_note'))
       ->setControlAttribute('name', 'custom_html')
-      ->setControlText($data['custom_html']);
+      ->setControlText($area->custom_html);
     $fieldset->addElement($field);
   }
 
@@ -147,13 +147,13 @@ function get_fieldset_general(array $data)
   $field = new FieldSelect();
   $field->setLabel(get_vocab('default_type'))
         ->setControlAttribute('name', 'area_default_type')
-        ->addSelectOptions(get_type_options(), $data['default_type'], true);
+        ->addSelectOptions(get_type_options(), $area->default_type, true);
   $fieldset->addElement($field);
 
   // Status - Enabled or Disabled
   $options = array('0' => get_vocab('enabled'),
     '1' => get_vocab('disabled'));
-  $value = ($data['disabled']) ? '1' : '0';
+  $value = ($area->isDisabled()) ? '1' : '0';
   $field = new FieldInputRadioGroup();
   $field->setAttribute('id', 'status')
     ->setLabel(get_vocab('status'))
@@ -164,7 +164,7 @@ function get_fieldset_general(array $data)
   // Mode - Times or Periods
   $options = array('1' => get_vocab('mode_periods'),
                    '0' => get_vocab('mode_times'));
-  $value = ($data['enable_periods']) ? '1' : '0';
+  $value = ($area->enable_periods) ? '1' : '0';
   $field = new FieldInputRadioGroup();
   $field->setAttribute('id', 'mode')
         ->setLabel(get_vocab('mode'))
@@ -175,7 +175,7 @@ function get_fieldset_general(array $data)
   $field = new FieldInputCheckbox();
   $field->setLabel(get_vocab('times_along_top'))
         ->setControlAttribute('name', 'area_times_along_top')
-        ->setControlChecked($data['times_along_top']);
+        ->setControlChecked($area->times_along_top);
   $fieldset->addElement($field);
 
   return $fieldset;
@@ -488,18 +488,17 @@ function get_fieldset_max_secs()
                                         'class' => 'enabler'))
                   ->setChecked($max_secs_per_interval_area_enabled[$interval_type]);
 
-    $max = $max_secs_per_interval_area[$interval_type];
-    toTimeString($max, $units, true, $max_unit);
+    $duration = to_time_string($max_secs_per_interval_area[$interval_type],true, $max_unit);
     $options = Form::getTimeUnitOptions($max_unit);
 
     $select = new ElementSelect();
     $select->setAttribute('name', "area_max_secs_per_${interval_type}_units")
-           ->addSelectOptions($options, array_search($units, $options), true);
+           ->addSelectOptions($options, array_search($duration['units'], $options), true);
 
     $time_area = new ElementInputNumber();
     $time_area->setAttributes(array('min'   => '0',
                                     'name'  => "area_max_secs_per_${interval_type}",
-                                    'value' => $max));
+                                    'value' => $duration['value']));
 
     // Wrap the area and global controls in <div>s.  It'll make the CSS easier.
     $div_area = new ElementDiv();
@@ -513,16 +512,15 @@ function get_fieldset_max_secs()
     $checkbox_global->setAttributes(array('disabled' => true))
                     ->setChecked($max_secs_per_interval_global_enabled[$interval_type]);
 
-    $max = $max_secs_per_interval_global[$interval_type];
-    toTimeString($max, $units, true, $max_unit);
+    $duration = to_time_string($max_secs_per_interval_global[$interval_type], true, $max_unit);
 
     $time_global = new ElementInputNumber();
-    $time_global->setAttributes(array('value' => $max,
+    $time_global->setAttributes(array('value' => $duration['value'],
                                       'disabled' => true));
 
     $select = new ElementSelect();
     $select->setAttribute('disabled', true)
-           ->addSelectOptions($options, array_search($units, $options), true);
+           ->addSelectOptions($options, array_search($duration['units'], $options), true);
 
     $div_global = new ElementDiv();
     $div_global->addElement($checkbox_global)
@@ -564,18 +562,17 @@ function get_fieldset_max_duration()
   $fieldset->addElement($field);
 
   // Times
-  $max_duration_value = $max_duration_secs;
-  toTimeString($max_duration_value, $max_duration_units);
+  $duration = to_time_string($max_duration_secs);
   $options = Form::getTimeUnitOptions();
 
   $select = new ElementSelect();
   $select->setAttribute('name', 'area_max_duration_units')
-         ->addSelectOptions($options, array_search($max_duration_units, $options), true);
+         ->addSelectOptions($options, array_search($duration['units'], $options), true);
 
   $field = new FieldInputNumber();
   $field->setLabel(get_vocab('mode_times'))
         ->setControlAttributes(array('name'  => 'area_max_duration_value',
-                                     'value' => $max_duration_value,
+                                     'value' => $duration['value'],
                                      'min'   => '0'))
         ->addElement($select);
   $fieldset->addElement($field);
@@ -584,24 +581,43 @@ function get_fieldset_max_duration()
 }
 
 
-function get_fieldset_booking_policies()
+function get_fieldset_periods_policies()
 {
-  global $enable_periods;
+  global $enable_periods, $periods_booking_opens;
 
   $fieldset = new ElementFieldset();
-  $fieldset->setAttribute('id', 'booking_policies')
-           ->addLegend(get_vocab('booking_policies'));
+  $fieldset->addLegend(get_vocab('mode_periods'))
+           ->setAttribute('id', 'periods_policies');
+  if (!$enable_periods)
+  {
+    $fieldset->setAttribute('class', 'js_none');
+  }
 
   // Note when using periods
   $field = new FieldSpan();
-  if (!$enable_periods)
-  {
-    $field->setAttribute('class', 'js_none');
-  }
   $field->setAttribute('id', 'book_ahead_periods_note')
         ->setControlText(get_vocab('book_ahead_note_periods'));
+  $fieldset->addElement($field);
 
-  $fieldset->addElement($field)
+  // periods_booking_opens
+  $field = new FieldInputTime();
+  $field->setLabel(get_vocab('booking_opens'))
+        ->setControlAttributes(array('id'       => 'periods_booking_opens',
+                                     'name'     => 'area_periods_booking_opens',
+                                     'value'    => $periods_booking_opens));
+
+  $fieldset->addElement($field);
+
+  return $fieldset;
+}
+
+
+function get_fieldset_booking_policies()
+{
+  $fieldset = new ElementFieldset();
+  $fieldset->setAttribute('id', 'booking_policies')
+           ->addLegend(get_vocab('booking_policies'))
+           ->addElement(get_fieldset_periods_policies())
            ->addElement(get_fieldset_create_ahead())
            ->addElement(get_fieldset_delete_ahead())
            ->addElement(get_fieldset_max_number())
@@ -756,7 +772,7 @@ $context = array(
 print_header($context);
 
 // Get the details for this area
-if (!isset($area) || is_null($data = get_area_details($area)))
+if (!isset($area) || is_null($area_object = Area::getById($area)))
 {
   fatal_error(get_vocab('invalid_area'));
 }
@@ -778,7 +794,7 @@ $outer_fieldset = new ElementFieldset();
 
 $outer_fieldset->addLegend(get_vocab('editarea'))
                ->addElement(get_fieldset_errors($errors))
-               ->addElement(get_fieldset_general($data))
+               ->addElement(get_fieldset_general($area_object))
                ->addElement(get_fieldset_times())
                ->addElement(get_fieldset_periods())
                ->addElement(get_fieldset_booking_policies())
