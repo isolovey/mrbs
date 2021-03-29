@@ -14,7 +14,7 @@ class SessionHandlerDb implements \SessionHandlerInterface
 
   public function __construct()
   {
-    self::$table = _tbl('sessions');
+    self::$table = _tbl('session');
 
     if (!db()->table_exists(self::$table))
     {
@@ -24,6 +24,9 @@ class SessionHandlerDb implements \SessionHandlerInterface
       // when a new SessionHandlerDb object is created we do it in a try/catch block.  [Note that
       // the exception can't be thrown on open() because a try/catch round session_start() won't
       // catch the exception - maybe because open() is a callback function??]
+      //
+      // This exception will also be thrown on the upgrade to database schema version 76, when the
+      // table was renamed.
       throw new \Exception("MRBS: session table does not exist");
     }
   }
@@ -46,7 +49,9 @@ class SessionHandlerDb implements \SessionHandlerInterface
 
   // Returns an encoded string of the read data. If nothing was read, it must
   // return an empty string. Note this value is returned internally to PHP for
-  // processing.
+  // processing.  Note that the data is base64_encoded in the database (otherwise
+  // there were problems with PostgreSQL in storing some objects - needs further
+  // investigation).
   public function read($session_id)
   {
     try
@@ -71,12 +76,13 @@ class SessionHandlerDb implements \SessionHandlerInterface
       throw $e;
     }
 
-    return ($result === -1) ? '' : $result;
+    return ($result === -1) ? '' : base64_decode($result);
   }
 
 
   // The return value (usually TRUE on success, FALSE on failure). Note this value is
-  // returned internally to PHP for processing.
+  // returned internally to PHP for processing.  Note that the data is base64_encoded
+  // in the database (see read() above).
   public function write($session_id , $session_data)
   {
     $sql = "SELECT COUNT(*) FROM " . self::$table . " WHERE id=:id LIMIT 1";
@@ -98,7 +104,7 @@ class SessionHandlerDb implements \SessionHandlerInterface
     }
 
     $sql_params = array(':id' => $session_id,
-                        ':data' => $session_data,
+                        ':data' => base64_encode($session_data),
                         ':access' => time());
 
     db()->command($sql, $sql_params);
