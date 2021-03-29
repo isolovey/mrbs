@@ -201,9 +201,13 @@ function upgrade_database($local, $from, $to, DB $upgrade_handle)
     upgrade_echo('<br>' . get_vocab('ok'));
     if ($ver > 1)
     {
+      // The table was renamed in Upgrade 82
+      $short_name = ($ver >= 82) ? 'variable' : 'variables';
       $variable_name = ($local) ? "local_db_version" : "db_version";
-      $upgrade_handle->command("UPDATE " . _tbl('variables') . " SET variable_content = ? ".
-                               "WHERE variable_name = ?", array($ver, $variable_name));
+      $sql = "UPDATE " . _tbl($short_name) . "
+                 SET variable_content = ?
+               WHERE variable_name = ?";
+      $upgrade_handle->command($sql, array($ver, $variable_name));
     }
     upgrade_echo("</p>\n");
 
