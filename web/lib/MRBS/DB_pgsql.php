@@ -11,6 +11,23 @@ class DB_pgsql extends DB
   const DB_DEFAULT_PORT = 5432;
   const DB_DBO_DRIVER = "pgsql";
 
+  // 9.5 final release in Feb 2021
+  // 9.5 required for INSERT INTO ... ON CONFLICT () DO UPDATE
+  // 8.4 required for array_agg()
+  private static $min_version = '9.6';
+
+  public function __construct($db_host, $db_username, $db_password, $db_name, $persist = 0, $db_port = null)
+  {
+    parent::__construct($db_host, $db_username, $db_password, $db_name, $persist, $db_port);
+    $this_version = $this->server_version();
+    if (version_compare($this_version, self::$min_version) < 0)
+    {
+      $message = "MRBS requires PostgreSQL must be version " . self::$min_version . " or higher." .
+                 " This server is running version $this_version.";
+      die($message);
+    }
+  }
+
 
   // A small utility function (not part of the DB abstraction API) to
   // resolve a qualified table name into its schema and table components.
@@ -113,7 +130,7 @@ class DB_pgsql extends DB
 
 
   // Destructor cleans up the connection
-  function __destruct()
+  public function __destruct()
   {
     //print "PostgreSQL destructor called\n";
 
@@ -125,6 +142,19 @@ class DB_pgsql extends DB
 
     // Rollback any outstanding transactions
     $this->rollback();
+  }
+
+  // Return a string identifying the database version
+  public function version()
+  {
+    return $this->query1("SELECT VERSION()");
+  }
+
+
+  // Just returns a version number, eg "9.2.24"
+  private function server_version()
+  {
+    return $this->query1("SHOW SERVER_VERSION");
   }
 
 
@@ -205,6 +235,7 @@ class DB_pgsql extends DB
         'smallint'                  => 'integer',
         'text'                      => 'character',
         'time with time zone'       => 'timestamp',
+        'time without time zone'    => 'timestamp',
         'timestamp with time zone'  => 'timestamp'
       );
 
@@ -215,8 +246,8 @@ class DB_pgsql extends DB
     $sql_params = array();
 
     // $table_name and $table_schema should be trusted but escape them anyway for good measure
-    $sql = "SELECT column_name, data_type, numeric_precision, numeric_scale, character_maximum_length,
-                   character_octet_length, is_nullable
+    $sql = "SELECT column_name, column_default, data_type, numeric_precision, numeric_scale,
+                   character_maximum_length, character_octet_length, is_nullable
             FROM information_schema.columns
             WHERE table_name = ?";
     $sql_params[] = $table_parts['table_name'];
@@ -233,8 +264,15 @@ class DB_pgsql extends DB
     {
       $name = $row['column_name'];
       $type = $row['data_type'];
+      $default = $row['column_default'];
       // map the type onto one of the generic natures, if a mapping exists
       $nature = (array_key_exists($type, $nature_map)) ? $nature_map[$type] : $type;
+      // Convert the default to be of the correct type
+      if (isset($default) && ($nature == 'integer'))
+      {
+        $default = (int) $default;
+      }
+
       // Get a length value;  one of these values should be set
       if (isset($row['numeric_precision']))
       {
@@ -263,7 +301,8 @@ class DB_pgsql extends DB
           'type' => $type,
           'nature' => $nature,
           'length' => $length,
-          'is_nullable' => $is_nullable
+          'is_nullable' => $is_nullable,
+          'default' => $default
         );
     }
 
@@ -318,6 +357,14 @@ class DB_pgsql extends DB
     return " $fieldname ~* ? ";
   }
 
+  // Generate non-standard SQL to add a table column after another specified
+  // column
+  public function syntax_addcolumn_after($fieldname)
+  {
+    // Can't be done in PostgreSQL without dropping and tr-creating the table.
+    return '';
+  }
+
 
   // Generate non-standard SQL to specify a column as an auto-incrementing
   // integer while doing a CREATE TABLE
@@ -355,4 +402,44 @@ class DB_pgsql extends DB
     return "SPLIT_PART($fieldname, ?, $count)";
   }
 
+
+  // Returns the syntax for aggregating a number of rows as a delimited string
+  public function syntax_group_array_as_string($fieldname, $delimiter=',')
+  {
+    // array_agg introduced in PostgreSQL version 8.4
+    //
+    // Use DISTINCT to eliminate duplicates which can arise when the query
+    // has joins on two or more junction tables.  Maybe a different query
+    // would eliminate the duplicates and the need for DISTINCT, and it may
+    // or may not be more efficient.
+    return "array_to_string(array_agg(DISTINCT $fieldname), '$delimiter')";
+  }
+
+
+  // Returns the syntax for an "upsert" query.  Unfortunately getting the id of the
+  // last row differs between MySQL and PostgreSQL.   In PostgreSQL the query will
+  // return a row with the id in the 'id' column.  However there isn't a corresponding
+  // way of doing this in MySQL, but db()->insert_id() will work, regardless of whether
+  // an insert or update was performed.  In PostgreSQL insert_id() returns the sequence
+  // number and not the id of the row.  Because the sequence number is updated on every
+  // INSERT in Postgres, regardless of whether a row was actually inserted, the value
+  // won't be the id of the row in the case of an update.  Note that one side effect of
+  // this behaviour is that there will be gaps in the sequence numbers of the rows, but
+  // this doesn't matter.
+  //
+  //  $conflict_keys     the key(s) which is/are unique; can be a scalar or an array
+  //  $assignments       an array of assignments for the UPDATE clause
+  //  $has_id_column     whether the table has an id column
+  public function syntax_on_duplicate_key_update($conflict_keys, array $assignments, $has_id_column=false)
+  {
+    $conflict_keys = array_map(array($this, 'quote'), $conflict_keys);
+    $sql = "ON CONFLICT (" . implode(', ', $conflict_keys) . ")";
+    $sql .= " DO UPDATE SET " . implode(', ', $assignments);
+    if ($has_id_column)
+    {
+      $sql .= " RETURNING id";
+    }
+
+    return $sql;
+  }
 }
