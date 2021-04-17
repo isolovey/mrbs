@@ -45,12 +45,12 @@ function get_field_to_date($data)
 function get_field_areamatch($data)
 {
   $field = new FieldInputDatalist();
-  $options = get_area_names($all=true);
+  $areas = new Areas();
   $field->setAttribute('id', 'div_areamatch')
         ->setLabel(get_vocab('match_area'))
         ->setControlAttributes(array('name'  => 'areamatch',
                                      'value' => $data['areamatch']))
-        ->addDatalistOptions($options, false);
+        ->addDatalistOptions($areas->getNames(true), false);
 
   return $field;
 }
@@ -850,18 +850,11 @@ function report_row(&$rows, $data)
         $duration_seconds = $data['end_time'] - $data['start_time'];
         $duration_seconds -= cross_dst($data['start_time'], $data['end_time']);
         $d = get_duration($data['start_time'], $data['end_time'], $data['enable_periods'], $data['area_id']);
-        $d_string = $d['duration'] . ' ' . $d['dur_units'];
+        $d_string = $d['value'] . ' ' . $d['units'];
         $d_string = escape($d_string);
       case 'start_time':
         $mod_time = ($field == 'start_time') ? 0 : -1;
-        if ($data['enable_periods'])
-        {
-          list( , $date) =  period_date_string($value, $data['area_id'], $mod_time);
-        }
-        else
-        {
-          $date = time_date_string($value);
-        }
+        $date = date_string($data['enable_periods'], $value, $data['area_id'], $mod_time);
         $value = $date;
         break;
       case 'type':
@@ -1503,7 +1496,7 @@ if ($phase == 2)
     $sql .= " LEFT JOIN " . _tbl('repeat') . " T
                      ON E.repeat_id=T.id";
   }
-  
+
   $sql .= " WHERE E.start_time < ? AND E.end_time > ?";
   $sql_params[] = $report_end;
   $sql_params[] = $report_start;
