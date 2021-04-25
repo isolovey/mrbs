@@ -76,9 +76,11 @@ CREATE TABLE mrbs_area
   confirmed_default           smallint,
   times_along_top             smallint DEFAULT 0 NOT NULL,
   default_type                char DEFAULT 'E' NOT NULL,
+  periods_booking_opens       time DEFAULT '00:00:00' NOT NULL,
 
   CONSTRAINT mrbs_uq_area_name UNIQUE (area_name)
 );
+
 
 CREATE TABLE mrbs_room
 (
@@ -101,13 +103,14 @@ CREATE TABLE mrbs_room
 comment on column mrbs_room.invalid_types is 'JSON encoded';
 create index mrbs_idxSortKey on mrbs_room(sort_key);
 
+
 CREATE TABLE mrbs_repeat
 (
   id              serial primary key,
-  start_time      int DEFAULT 0 NOT NULL,
-  end_time        int DEFAULT 0 NOT NULL,
+  start_time      bigint DEFAULT 0 NOT NULL,
+  end_time        bigint DEFAULT 0 NOT NULL,
   rep_type        int DEFAULT 0 NOT NULL,
-  end_date        int DEFAULT 0 NOT NULL,
+  end_date        bigint DEFAULT 0 NOT NULL,
   rep_opt         varchar(32) NOT NULL,
   room_id         int DEFAULT 1 NOT NULL
                     REFERENCES mrbs_room(id)
@@ -123,8 +126,8 @@ CREATE TABLE mrbs_repeat
   month_absolute  smallint DEFAULT NULL,
   month_relative  varchar(4) DEFAULT NULL,
   status          smallint DEFAULT 0 NOT NULL,
-  reminded        int,
-  info_time       int,
+  reminded        bigint,
+  info_time       bigint,
   info_user       varchar(80),
   info_text       text,
   ical_uid        varchar(255) DEFAULT '' NOT NULL,
@@ -133,12 +136,15 @@ CREATE TABLE mrbs_repeat
 comment on column mrbs_repeat.start_time is 'Unix timestamp';
 comment on column mrbs_repeat.end_time is 'Unix timestamp';
 comment on column mrbs_repeat.end_date is 'Unix timestamp';
+comment on column mrbs_repeat.reminded is 'Unix timestamp';
+comment on column mrbs_repeat.info_time is 'Unix timestamp';
+
 
 CREATE TABLE mrbs_entry
 (
   id                          serial primary key,
-  start_time                  int DEFAULT 0 NOT NULL,
-  end_time                    int DEFAULT 0 NOT NULL,
+  start_time                  bigint DEFAULT 0 NOT NULL,
+  end_time                    bigint DEFAULT 0 NOT NULL,
   entry_type                  int DEFAULT 0 NOT NULL,
   repeat_id                   int DEFAULT NULL
                                 REFERENCES mrbs_repeat(id)
@@ -155,8 +161,8 @@ CREATE TABLE mrbs_entry
   type                        char DEFAULT 'E' NOT NULL,
   description                 text,
   status                      smallint DEFAULT 0 NOT NULL,
-  reminded                    int,
-  info_time                   int,
+  reminded                    bigint,
+  info_time                   bigint,
   info_user                   varchar(80),
   info_text                   text,
   ical_uid                    varchar(255) DEFAULT '' NOT NULL,
@@ -172,13 +178,16 @@ CREATE TABLE mrbs_entry
 );
 comment on column mrbs_entry.start_time is 'Unix timestamp';
 comment on column mrbs_entry.end_time is 'Unix timestamp';
+comment on column mrbs_entry.reminded is 'Unix timestamp';
+comment on column mrbs_entry.info_time is 'Unix timestamp';
 comment on column mrbs_entry.registration_opens is 'Seconds before the start time';
 comment on column mrbs_entry.registration_closes is 'Seconds before the start time';
 create index mrbs_idxStartTime on mrbs_entry(start_time);
 create index mrbs_idxEndTime on mrbs_entry(end_time);
 create index mrbs_idxRoomStartEnd on mrbs_entry(room_id, start_time, end_time);
 
-CREATE TABLE mrbs_participants
+
+CREATE TABLE mrbs_participant
 (
   id          serial primary key,
   entry_id    int NOT NULL
@@ -187,12 +196,14 @@ CREATE TABLE mrbs_participants
                 ON DELETE CASCADE,
   username    varchar(191),
   create_by   varchar(255),
-  registered  int,
+  registered  bigint,
 
   CONSTRAINT mrbs_uq_entryid_username UNIQUE (entry_id, username)
 );
+comment on column mrbs_participant.registered is 'Unix timestamp';
 
-CREATE TABLE mrbs_variables
+
+CREATE TABLE mrbs_variable
 (
   id               serial primary key,
   variable_name    varchar(80),
@@ -201,40 +212,148 @@ CREATE TABLE mrbs_variables
   CONSTRAINT mrbs_uq_variable_name UNIQUE (variable_name)
 );
 
+
 CREATE TABLE mrbs_zoneinfo
 (
   id                 serial primary key,
   timezone           varchar(127) DEFAULT '' NOT NULL,
   outlook_compatible smallint NOT NULL DEFAULT 0,
   vtimezone          text,
-  last_updated       int NOT NULL DEFAULT 0,
+  last_updated       bigint NOT NULL DEFAULT 0,
 
   CONSTRAINT mrbs_uq_timezone UNIQUE (timezone, outlook_compatible)
 );
+comment on column mrbs_zoneinfo.last_updated is 'Unix timestamp';
 
-CREATE TABLE mrbs_sessions
+
+CREATE TABLE mrbs_session
 (
   id      varchar(191) NOT NULL primary key,
-  access  int DEFAULT NULL,
+  access  bigint DEFAULT NULL,
   data    text DEFAULT NULL
 );
-create index mrbs_idxAccess on mrbs_sessions(access);
+comment on column mrbs_session.access is 'Unix timestamp';
+create index mrbs_idxAccess on mrbs_session(access);
 
-CREATE TABLE mrbs_users
+
+CREATE TABLE mrbs_user
 (
-  id            serial primary key,
-  level         smallint DEFAULT '0' NOT NULL,  /* play safe and give no rights */
-  name          varchar(30),
-  display_name  varchar(191),
-  password_hash varchar(255),
-  email         varchar(75),
-  timestamp     timestamptz DEFAULT current_timestamp,
-  last_login    int DEFAULT 0 NOT NULL,
-  reset_key_hash varchar(255),
-  reset_key_expiry int DEFAULT 0 NOT NULL,
+  id                serial primary key,
+  auth_type         varchar(30) NOT NULL DEFAULT 'db',
+  level             smallint DEFAULT 0 NOT NULL,  /* play safe and give no rights */
+  name              varchar(30),
+  display_name      varchar(191),
+  password_hash     varchar(255),
+  email             varchar(75),
+  timestamp         timestamptz DEFAULT current_timestamp,
+  last_login        bigint DEFAULT 0 NOT NULL,
+  reset_key_hash    varchar(255),
+  reset_key_expiry  bigint DEFAULT 0 NOT NULL,
+
+  CONSTRAINT mrbs_uq_name_auth_type UNIQUE (name, auth_type)
+);
+comment on column mrbs_user.last_login is 'Unix timestamp';
+comment on column mrbs_user.reset_key_expiry is 'Unix timestamp';
+
+
+CREATE TABLE mrbs_group
+(
+  id          serial primary key,
+  auth_type   varchar(30) NOT NULL DEFAULT 'db',
+  name        varchar(191) NOT NULL,
+
+  CONSTRAINT mrbs_uq_group_name_auth_type UNIQUE (name, auth_type)
+);
+
+
+CREATE TABLE mrbs_user_group
+(
+  user_id   int NOT NULL
+              REFERENCES mrbs_user(id)
+              ON UPDATE CASCADE
+              ON DELETE CASCADE,
+  group_id  int NOT NULL
+              REFERENCES mrbs_group(id)
+              ON UPDATE CASCADE
+              ON DELETE CASCADE,
+
+  CONSTRAINT mrbs_uq_user_group UNIQUE (user_id, group_id)
+);
+
+
+CREATE TABLE mrbs_role
+(
+  id     serial primary key,
+  name   varchar(191) NOT NULL,
 
   CONSTRAINT mrbs_uq_name UNIQUE (name)
 );
+
+
+-- Create the user_role table
+CREATE TABLE mrbs_user_role
+(
+  user_id     int NOT NULL
+                REFERENCES mrbs_user(id)
+                ON UPDATE CASCADE
+                ON DELETE CASCADE,
+  role_id     int NOT NULL
+                REFERENCES mrbs_role(id)
+                ON UPDATE CASCADE
+                ON DELETE CASCADE,
+
+  CONSTRAINT mrbs_uq_user_role UNIQUE (user_id, role_id)
+);
+
+
+CREATE TABLE mrbs_group_role
+(
+  group_id    int NOT NULL
+                REFERENCES mrbs_group(id)
+                ON UPDATE CASCADE
+                ON DELETE CASCADE,
+  role_id     int NOT NULL
+                REFERENCES mrbs_role(id)
+                ON UPDATE CASCADE
+                ON DELETE CASCADE,
+
+  CONSTRAINT mrbs_uq_group_role UNIQUE (group_id, role_id)
+);
+
+
+CREATE TABLE mrbs_role_area
+(
+  role_id     int NOT NULL
+                REFERENCES mrbs_role(id)
+                ON UPDATE CASCADE
+                ON DELETE CASCADE,
+  area_id     int NOT NULL
+                REFERENCES mrbs_area(id)
+                ON UPDATE CASCADE
+                ON DELETE CASCADE,
+  permission  char NOT NULL,
+  state       char NOT NULL,
+
+  CONSTRAINT mrbs_uq_role_area UNIQUE (role_id, area_id)
+);
+
+
+CREATE TABLE mrbs_role_room
+(
+  role_id     int NOT NULL
+                REFERENCES mrbs_role(id)
+                ON UPDATE CASCADE
+                ON DELETE CASCADE,
+  room_id     int NOT NULL
+                REFERENCES mrbs_room(id)
+                ON UPDATE CASCADE
+                ON DELETE CASCADE,
+  permission  char NOT NULL,
+  state       char NOT NULL,
+
+  CONSTRAINT mrbs_uq_role_room UNIQUE (role_id, room_id)
+);
+
 
 CREATE OR REPLACE FUNCTION update_timestamp_column()
 RETURNS TRIGGER AS $$
@@ -246,9 +365,9 @@ $$ language 'plpgsql';
 
 CREATE TRIGGER update_mrbs_entry_timestamp BEFORE UPDATE ON mrbs_entry FOR EACH ROW EXECUTE PROCEDURE update_timestamp_column();
 CREATE TRIGGER update_mrbs_repeat_timestamp BEFORE UPDATE ON mrbs_repeat FOR EACH ROW EXECUTE PROCEDURE update_timestamp_column();
-CREATE TRIGGER update_mrbs_users_timestamp BEFORE UPDATE ON mrbs_users FOR EACH ROW EXECUTE PROCEDURE update_timestamp_column();
+CREATE TRIGGER update_mrbs_user_timestamp BEFORE UPDATE ON mrbs_user FOR EACH ROW EXECUTE PROCEDURE update_timestamp_column();
 
-INSERT INTO mrbs_variables (variable_name, variable_content)
-  VALUES ('db_version', '81');
-INSERT INTO mrbs_variables (variable_name, variable_content)
+INSERT INTO mrbs_variable (variable_name, variable_content)
+  VALUES ('db_version', '85');
+INSERT INTO mrbs_variable (variable_name, variable_content)
   VALUES ('local_db_version', '1');

@@ -13,7 +13,7 @@ use MRBS\Form\FieldSelect;
 
 /*****************************************************************************\
 *                                                                            *
-*   File name     edit_users.php                                             *
+*   File name     edit_user.php                                             *
 *                                                                            *
 *   Description   Edit the user database                                     *
 *                                                                            *
@@ -43,17 +43,9 @@ use MRBS\Form\FieldSelect;
 
 require "defaultincludes.inc";
 
-if ($auth['type'] != 'db')
-{
-  // You shouldn't be here unless you're using 'db' authentication
-  location_header('index.php');
-}
-
 // Get non-standard form variables
 $action = get_form_var('action', 'string');
 $id = get_form_var('id', 'int');
-$password0 = get_form_var('password0', 'string', null, INPUT_POST);
-$password1 = get_form_var('password1', 'string', null, INPUT_POST);
 $invalid_email = get_form_var('invalid_email', 'int');
 $name_empty = get_form_var('name_empty', 'int');
 $name_not_unique = get_form_var('name_not_unique', 'int');
@@ -62,28 +54,19 @@ $pwd_not_match = get_form_var('pwd_not_match', 'string');
 $pwd_invalid = get_form_var('pwd_invalid', 'string');
 $datatable = get_form_var('datatable', 'int');  // Will only be set if we're using DataTables
 $back_button = get_form_var('back_button', 'string');
-$delete_button = get_form_var('delete_button', 'string');
 $edit_button = get_form_var('edit_button', 'string');
-$update_button = get_form_var('update_button', 'string');
 
 if (isset($back_button))
 {
   unset($action);
 }
-elseif (isset($delete_button))
-{
-  $action = 'delete';
-}
 elseif (isset($edit_button))
 {
   $action = 'edit';
 }
-elseif (isset($update_button))
-{
-  $action = 'update';
-}
 
 $is_ajax = is_ajax();
+
 
 // Checks whether the current user can view the target user
 function can_view_user($target)
@@ -131,7 +114,7 @@ function get_form_var_type($field)
       break;
     case 'integer':
       // Smallints and tinyints are considered to be booleans
-      $type = (isset($field['length']) && ($field['length'] <= 2)) ? 'string' : 'int';
+      $type = (isset($field['length']) && ($field['length'] <= 2)) ? 'bool' : 'int';
       break;
     // We can only really deal with the types above at the moment
     default:
@@ -142,8 +125,9 @@ function get_form_var_type($field)
 }
 
 
-function output_row($row)
+function output_row(User $user)
 {
+  global $auth;
   global $is_ajax, $json_data;
   global $fields, $ignore_columns, $select_options;
 
@@ -151,121 +135,149 @@ function output_row($row)
 
   // First column, which is the display name
   // Make sure we've got a display name.  If not, use the username.
-  if (!isset($row['display_name']) || (trim($row['display_name']) === ''))
+  if (!isset($user->display_name) || (trim($user->display_name) === ''))
   {
-    $row['display_name'] = $row['name'];
+    $user->display_name = $user->name;
   }
+
+  $form_value = $user->display_name;
+
   // You can only edit a user if you have sufficient admin rights, or else if that user is yourself
-  if (can_edit_user($row['name']))
+  if (can_edit_user($user->name))
   {
     $form = new Form();
     $form->setAttributes(array('method' => 'post',
                                'action' => multisite(this_page())));
-    $form->addHiddenInput('id', $row['id']);
+    $form->addHiddenInput('id', $user->id);
     $submit = new ElementInputSubmit();
     $submit->setAttributes(array('class' => 'link',
                                  'name'  => 'edit_button',
-                                 'value' => $row['display_name']));
+                                 'value' => $form_value));
     $form->addElement($submit);
-    $display_name_value = $form->toHTML();
+    $first_column_value = $form->toHTML();
   }
   else
   {
-    $display_name_value = "<span class=\"normal\">" . htmlspecialchars($row['display_name']) . "</span>";
+    $first_column_value = "<span class=\"normal\">" . htmlspecialchars($form_value) . "</span>";
   }
 
-  $sortname = get_sortable_name($row['display_name']);
-  $values[] = '<span title="' . htmlspecialchars($sortname) . '"></span>' . $display_name_value;
+  $sortname = get_sortable_name($user->display_name);
+  $values[] = '<span title="' . htmlspecialchars($sortname) . '"></span>' . $first_column_value;
 
   // Then the username
-  $name_value = "<span class=\"normal\">" . htmlspecialchars($row['name']) . "</span>";
-  $values[] = '<span title="' . htmlspecialchars($row['name']) . '"></span>' . $name_value;
+  $name_value = "<span class=\"normal\">" . htmlspecialchars($user->name) . "</span>";
+  $values[] = '<span title="' . htmlspecialchars($user->name) . '"></span>' . $name_value;
 
-  // Other columns
-  foreach ($fields as $field)
+  // Then the email address
+  // we don't want to truncate the email address
+  $escaped_email = htmlspecialchars($user->email);
+  $values[] = "<div class=\"string\">\n" .
+    "<a href=\"mailto:$escaped_email\">$escaped_email</a>\n" .
+    "</div>\n";
+
+  // Then the level field.  This contains a code and we want to display a string
+  // (but we put the code in a span for sorting)
+  $values[] = '<span title="' . htmlspecialchars($user->level) . '"></span>' .
+    '<div class="string">' . htmlspecialchars(get_vocab('level_' . $user->level)) . '</div>';
+
+  // And add the groups, which aren't one of the table columns
+  $group_name_list = implode(', ', $user->group_names);
+  $links = array();
+  foreach ($user->group_names as $group_id => $group_name)
   {
-    $key = $field['name'];
-    if (!in_array($key, $ignore_columns))
+    $links[] = '<a href="' . multisite(htmlspecialchars("edit_group.php?group_id=$group_id")) . '">' .
+               htmlspecialchars($group_name) . '</a>';
+  }
+  $values[] = "<div class=\"string\" title=\"" . htmlspecialchars($group_name_list) . "\">" .
+              implode(', ', $links) . "</div>";
+
+  // And add the roles, which aren't one of the table columns either
+  $role_name_list = implode(', ', $user->role_names);
+  $links = array();
+  foreach ($user->role_names as $role_id => $role_name)
+  {
+    $links[] = '<a href="' . multisite(htmlspecialchars("edit_role.php?role_id=$role_id")) . '">' .
+               htmlspecialchars($role_name) . '</a>';
+  }
+  $values[] = "<div class=\"string\" title=\"" . htmlspecialchars($role_name_list) . "\">" .
+              implode(', ', $links) . "</div>";
+
+  if ($auth['type'] == 'db')
+  {
+    // Other columns
+    foreach ($fields as $field)
     {
-      $col_value = $row[$key];
-
-      // If you are not a user admin then you are only allowed to see the last_updated
-      // and last_login times for yourself.
-      if (in_array($key, array('timestamp', 'last_login')) &&
-          !can_edit_user($row['name']))
+      $key = $field['name'];
+      if (!in_array($key, $ignore_columns))
       {
-        $col_value = null;
-      }
+        $col_value = $user->{$key};
 
-      switch($key)
-      {
-        // special treatment for some fields
-        case 'level':
-          // the level field contains a code and we want to display a string
-          // (but we put the code in a span for sorting)
-          $values[] = "<span title=\"$col_value\"></span>" .
-                      "<div class=\"string\">" . get_vocab("level_$col_value") . "</div>";
-          break;
-        case 'email':
-          // we don't want to truncate the email address
-          $escaped_email = htmlspecialchars($col_value);
-          $values[] = "<div class=\"string\">\n" .
-                      "<a href=\"mailto:$escaped_email\">$escaped_email</a>\n" .
-                      "</div>\n";
-          break;
-        case 'timestamp':
-          // Convert the SQL timestamp into a time value and back into a localised string and
-          // put the UNIX timestamp in a span so that the JavaScript can sort it properly.
-          $unix_timestamp = strtotime($col_value);
-          if (($unix_timestamp === false) || ($unix_timestamp < 0))
-          {
-            // To cater for timestamps before the start of the Unix Epoch
-            $unix_timestamp = 0;
-          }
-          $values[] = "<span title=\"$unix_timestamp\"></span>" .
-                      (($unix_timestamp) ? time_date_string($unix_timestamp) : '');
-          break;
-        case 'last_login':
-          $values[] = "<span title=\"$col_value\"></span>" .
-                      (($col_value) ? time_date_string($col_value) : '');
-          break;
-        default:
-          // Where there's an associative array of options, display
-          // the value rather than the key
-          if (isset($select_options["users.$key"]) &&
-              is_assoc($select_options["users.$key"]))
-          {
-            if (isset($select_options["users.$key"][$row[$key]]))
+        // If you are not a user admin then you are only allowed to see the last_updated
+        // and last_login times for yourself.
+        if (in_array($key, array('timestamp', 'last_login')) &&
+          !can_edit_user($user->name))
+        {
+          $col_value = null;
+        }
+
+        switch ($key)
+        {
+          case 'timestamp':
+            // Convert the SQL timestamp into a time value and back into a localised string and
+            // put the UNIX timestamp in a span so that the JavaScript can sort it properly.
+            $unix_timestamp = strtotime($col_value);
+            if (($unix_timestamp === false) || ($unix_timestamp < 0))
             {
-              $col_value = $select_options["users.$key"][$row[$key]];
+              // To cater for timestamps before the start of the Unix Epoch
+              $unix_timestamp = 0;
+            }
+            $values[] = "<span title=\"$unix_timestamp\"></span>" .
+              (($unix_timestamp) ? time_date_string($unix_timestamp) : '');
+            break;
+
+          case 'last_login':
+            $values[] = "<span title=\"$col_value\"></span>" .
+              (($col_value) ? time_date_string($col_value) : '');
+            break;
+
+          default:
+            // Where there's an associative array of options, display
+            // the value rather than the key
+            if (isset($select_options["user.$key"]) &&
+              is_assoc($select_options["user.$key"]))
+            {
+              if (isset($select_options["user.$key"][$user->{$key}]))
+              {
+                $col_value = $select_options["user.$key"][$user->{$key}];
+              }
+              else
+              {
+                $col_value = '';
+              }
+              $values[] = "<div class=\"string\">" . htmlspecialchars($col_value) . "</div>";
+            }
+            elseif (($field['nature'] == 'boolean') ||
+              (($field['nature'] == 'integer') && isset($field['length']) && ($field['length'] <= 2)))
+            {
+              // booleans: represent by a checkmark
+              $values[] = (!empty($col_value)) ? MRBS_HEAVY_CHECK_MARK : '';
+            }
+            elseif (($field['nature'] == 'integer') && isset($field['length']) && ($field['length'] > 2))
+            {
+              // integer values
+              $values[] = $col_value;
             }
             else
             {
-              $col_value = '';
+              // strings
+              $values[] = "<div class=\"string\" title=\"" . htmlspecialchars($col_value) . "\">" .
+                htmlspecialchars($col_value) . "</div>";
             }
-            $values[] = "<div class=\"string\">" . htmlspecialchars($col_value) . "</div>";
-          }
-          elseif (($field['nature'] == 'boolean') ||
-              (($field['nature'] == 'integer') && isset($field['length']) && ($field['length'] <= 2)) )
-          {
-            // booleans: represent by a checkmark
-            $values[] = (!empty($col_value)) ? "<img src=\"images/check.png\" alt=\"check mark\" width=\"16\" height=\"16\">" : "&nbsp;";
-          }
-          elseif (($field['nature'] == 'integer') && isset($field['length']) && ($field['length'] > 2))
-          {
-            // integer values
-            $values[] = $col_value;
-          }
-          else
-          {
-             // strings
-            $values[] = "<div class=\"string\" title=\"" . htmlspecialchars($col_value) . "\">" .
-                        htmlspecialchars($col_value) . "</div>";
-          }
-          break;
-      }  // end switch
-    }
-  }  // end foreach
+            break;
+        }  // end switch
+      }
+    }  // end foreach
+  }
 
   if ($is_ajax)
   {
@@ -304,6 +316,18 @@ function get_field_level($params, $disabled=false)
 }
 
 
+function get_fieldset_roles($user)
+{
+  global $auth, $initial_user_creation;
+
+  $roles = new Roles();
+  $disabled = !$initial_user_creation &&
+              !is_user_admin() &&
+              in_array('roles', $auth['db']['protected_fields']);
+  return $roles->getFieldset($user->roles, $disabled, Group::getRoles($user->groups));
+}
+
+
 function get_field_name($params, $disabled=false)
 {
   $field = new FieldInputText();
@@ -315,7 +339,7 @@ function get_field_name($params, $disabled=false)
                                      'required' => true,
                                      'pattern'  => REGEX_TEXT_POS));
 
-  if (null !== ($maxlength = maxlength('users.name')))
+  if (null !== ($maxlength = maxlength('user.name')))
   {
     $field->setControlAttribute('maxlength', $maxlength);
   }
@@ -342,7 +366,7 @@ function get_field_display_name($params, $disabled=false)
                                  'required' => true,
                                  'pattern'  => REGEX_TEXT_POS));
 
-  if (null !== ($maxlength = maxlength('users.display_name')))
+  if (null !== ($maxlength = maxlength('user.display_name')))
   {
     $field->setControlAttribute('maxlength', $maxlength);
   }
@@ -368,7 +392,7 @@ function get_field_email($params, $disabled=false)
                                      'disabled' => $disabled,
                                      'multiple' => true));
 
-  if (null !== ($maxlength = maxlength('users.email')))
+  if (null !== ($maxlength = maxlength('user.email')))
   {
     $field->setControlAttribute('maxlength', $maxlength);
   }
@@ -474,6 +498,7 @@ function get_field_custom($custom_field, $params, $disabled=false)
 function get_fieldset_password($id=null, $disabled=false)
 {
   $fieldset = new ElementFieldset();
+  $fieldset->addLegend(get_loc_field_name(User::TABLE_NAME, 'password'));
 
   // If this is an existing user then give them the message about optionally
   // changing their password.
@@ -487,7 +512,7 @@ function get_fieldset_password($id=null, $disabled=false)
   for ($i=0; $i<2; $i++)
   {
     $field = new FieldInputPassword();
-    $field->setLabel(get_vocab('users.password'))
+    $field->setLabel(get_loc_field_name(User::TABLE_NAME, 'password'))
           ->setControlAttributes(array('id'   => "password$i",
                                        'name' => "password$i",
                                        'disabled' => $disabled,
@@ -563,33 +588,26 @@ if ($is_ajax)
   $json_data['aaData'] = array();
 }
 
-// Get the information about the fields in the users table
-$fields = db()->field_info(_tbl('users'));
+// Get the information about the fields in the user table
+$fields = db()->field_info(_tbl(User::TABLE_NAME));
 
-$users = auth()->getUsers();
+$users = new Users();
 
 
 /*---------------------------------------------------------------------------*\
 |                         Authenticate the current user                         |
 \*---------------------------------------------------------------------------*/
 
-// Check the CSRF token if we're going to be altering the database
-if (isset($action) && in_array($action, array('delete', 'update')))
+if (($auth['type'] != 'db') || (count($users) > 0))
 {
-  Form::checkToken();
-}
-
-$initial_user_creation = false;
-
-if (count($users) > 0)
-{
+  $initial_user_creation = false;
   $mrbs_user = session()->getCurrentUser();
   $level = (isset($mrbs_user)) ? $mrbs_user->level : 0;
   // Check the user is authorised for this page
   checkAuthorised(this_page());
 }
 else
-// We've just created the table.   Assume the person doing this IS an administrator
+// We've just installed MRBS.   Assume the person doing this IS an administrator
 // and then send them through to the screen to add the first user (which we'll force
 // to be an admin)
 {
@@ -607,44 +625,55 @@ else
 |             Edit a given entry - 1st phase: Get the user input.             |
 \*---------------------------------------------------------------------------*/
 
-if (isset($action) && ( ($action == "edit") or ($action == "add") ))
+if (isset($action) && ( ($action == 'edit') or ($action == 'add') ))
 {
 
   if (isset($id))
   {
-    // If it's an existing user then get the data from the database
-    $sql = "SELECT *
-              FROM " . _tbl('users') . "
-             WHERE id=?";
-    $result = db()->query($sql, array($id));
-    $data = $result->next_row_keyed();
-    unset($result);
-    // Check that we've got a valid result.   We should do normally, but if somebody alters
-    // the id parameter in the query string then we won't.   If the result is invalid, go somewhere
-    // safe.
-    if (!$data)
+    // If it's an existing user then get the user from the database
+    $user = User::getById($id);
+    if (!isset($user))
     {
       trigger_error("Invalid user id $id", E_USER_NOTICE);
       location_header(this_page());
     }
   }
-  if (!isset($id) || (!$data))
+
+  if (!isset($id) || (!$user))
   {
-    // Otherwise try and get the data from the query string, and if it's
-    // not there set the default to be blank.  (The data will be in the
-    // query string if there was an error on validating the data after it
-    // had been submitted.   We want to preserve the user's original values
-    // so that they don't have to re-type them).
+    // Otherwise try and construct the user from the query string.
+    // (The data will be in the query string if there was an error on
+    // validating the data after it had been submitted.   We want to
+    // preserve the user's original values so that they don't have to
+    // re-type them).
+    $user = new User();
     foreach ($fields as $field)
     {
+      if ($field['name'] == 'auth_db')
+      {
+        continue;
+      }
       $type = get_form_var_type($field);
-      $value = get_form_var($field['name'], $type);
-      $data[$field['name']] = (isset($value)) ? $value : "";
+      // Level's a special case that needs a default
+      if ($field['name'] == 'level')
+      {
+        $default = ($initial_user_creation) ? $max_level : 1;
+      }
+      else
+      {
+        $default = null;
+      }
+      $value = get_form_var($field['name'], $type, $default);
+      $user->{$field['name']} = (isset($value)) ? $value : '';
     }
+    // Add in the roles
+    $user->roles = get_form_var('roles', 'array');
+    // TODO: rename the name column so that we don't have to do this
+    $user->username = $user->name;
   }
 
   // First make sure the user is authorized
-  if (!$initial_user_creation && !can_edit_user($data['name']))
+  if (!$initial_user_creation && !can_edit_user($user->username))
   {
     showAccessDenied();
     exit();
@@ -682,11 +711,7 @@ if (isset($action) && ( ($action == "edit") or ($action == "add") ))
   // or admin rights are removed!
   if ($action == "edit")
   {
-    $sql = "SELECT COUNT(*)
-              FROM " . _tbl('users') . "
-             WHERE level=?";
-    $n_admins = db()->query1($sql, array($max_level));
-    $editing_last_admin = ($n_admins <= 1) && ($data['level'] == $max_level);
+    $editing_last_admin = ($auth['type'] == 'db') && ($user->level == $max_level) && (Users::getNAdmins() <= 1);
   }
   else
   {
@@ -728,13 +753,13 @@ if (isset($action) && ( ($action == "edit") or ($action == "add") ))
       echo "</ul>\n";
     }
   }
-
+  // TODO: rewrite all of this
   $form = new Form();
 
-  $form->setAttributes(array('id'     => 'form_edit_users',
+  $form->setAttributes(array('id'     => 'form_edit_user',
                              'class'  => 'standard',
                              'method' => 'post',
-                             'action' => multisite(this_page())));
+                             'action' => multisite('edit_user_handler.php')));
 
   if (isset($id))
   {
@@ -742,40 +767,44 @@ if (isset($action) && ( ($action == "edit") or ($action == "add") ))
   }
 
   $fieldset = new ElementFieldset();
+  $fieldset->addLegend(get_vocab('general_settings'));
 
   foreach ($fields as $field)
   {
     $key = $field['name'];
 
-    $params = array('label' => get_loc_field_name(_tbl('users'), $key),
-                    'name'  => VAR_PREFIX . $key,
-                    'value' => $data[$key]);
+    if (($auth['type'] != 'db') && !in_array($key, array('name', 'display_name', 'level')))
+    {
+      continue;
+    }
 
-    $disabled = !$initial_user_creation &&
-                !is_user_admin() &&
-                in_array($key, $auth['db']['protected_fields']);
+    $params = array('label' => get_loc_field_name(_tbl(User::TABLE_NAME), $key),
+                    'name'  => $key,
+                    'value' => $user->{$key});
+
+    $disabled = ($auth['type'] != 'db') ||
+                (!$initial_user_creation &&
+                 !is_user_admin() &&
+                 in_array($key, $auth['db']['protected_fields']));
 
     switch ($key)
     {
-      case 'id':            // We've already got this in a hidden input
-      case 'password_hash': // We don't want to do anything with this
-      case 'timestamp':     // Nor this
+      // We've already got this in a hidden input
+      case 'id':
+      // We don't want to do anything with these
+      case 'auth_type':
+      case 'password_hash':
+      case 'timestamp':
       case 'last_login':
       case 'reset_key_hash':
       case 'reset_key_expiry':
         break;
 
       case 'level':
-        if ($action == 'add')
-        {
-          // If we're creating a new user and it's the very first user, then they
-          // should have maximum rights.  Otherwise make them an ordinary user.
-          $params['value'] = ($initial_user_creation) ? $max_level : 1;
-        }
         // Work out whether the level select input should be disabled (NB you can't make a <select> readonly)
         // We don't want the user to be able to change the level if (a) it's the first user being created or
         // (b) it's the last admin left or (c) they don't have admin rights
-        $level_disabled = $initial_user_creation || $editing_last_admin || $disabled;
+        $level_disabled = ($auth['type'] != 'db') || $initial_user_creation || $editing_last_admin || $disabled;
         $fieldset->addElement(get_field_level($params, $level_disabled));
         // Add a hidden input if the field is disabled
         if ($level_disabled)
@@ -797,26 +826,34 @@ if (isset($action) && ( ($action == "edit") or ($action == "add") ))
         break;
 
       default:
-        $params['field'] = "users.$key";
+        $params['field'] = "user.$key";
         $fieldset->addElement(get_field_custom($field, $params, $disabled));
         break;
 
     }
   }
 
-  // Now the password fields
-  $disabled = !$initial_user_creation &&
-              !is_user_admin() &&
-              in_array('password_hash', $auth['db']['protected_fields']);
+  $form->addElement($fieldset);
 
-  $form->addElement($fieldset)
-       ->addElement(get_fieldset_password($id, $disabled));
+  // Add in the roles
+  $form->addElement(get_fieldset_roles($user));
+
+  if ($auth['type'] == 'db')
+  {
+    // Now the password fields
+    $disabled = !$initial_user_creation &&
+      !is_user_admin() &&
+      in_array('password_hash', $auth['db']['protected_fields']);
+
+
+    $form->addElement(get_fieldset_password($id, $disabled));
+  }
 
   // Administrators get the right to delete users, but only those at the
   // the same level as them or lower.  Otherwise present a Back button.
   $delete = isset($id) &&
             is_user_admin() &&
-            ($level >= $data['level']);
+            ($level >= $user->level);
 
   // Don't let the last admin be deleted, otherwise you'll be locked out.
   $button_disabled = $delete && $editing_last_admin;
@@ -825,343 +862,29 @@ if (isset($action) && ( ($action == "edit") or ($action == "add") ))
 
   $form->render();
 
+  if (is_admin())
+  {
+    echo "<div id=\"effective_permissions\">\n";
+    echo "<h2>" . get_vocab('effective_permissions') . "</h2>\n";
+    echo $user->effectivePermissionsHTML();
+    echo "</div>\n";
+  }
+
   // Print footer and exit
   print_footer();
   exit;
 }
 
-/*---------------------------------------------------------------------------*\
-|             Edit a given entry - 2nd phase: Update the database.            |
-\*---------------------------------------------------------------------------*/
-
-if (isset($action) && ($action == "update"))
-{
-  // If you haven't got the rights to do this, then exit
-  if (isset($mrbs_user))
-  {
-    $sql = "SELECT id
-              FROM " . _tbl('users') . "
-             WHERE name=?
-             LIMIT 1";
-    $my_id = db()->query1($sql, array(utf8_strtolower($mrbs_user->username)));
-  }
-  else
-  {
-    $my_id = null;
-  }
-
-  // You are only alowed to do this if (a) you're creating the first user or
-  // (b) you are a user admin or (c) you are editing your own details
-  if (!$initial_user_creation &&
-      !is_user_admin() &&
-      (!isset($my_id) || ($id != $my_id )))
-  {
-    // It shouldn't normally be possible to get here.
-    trigger_error("Attempt made to update a user without sufficient rights.", E_USER_NOTICE);
-    location_header('edit_users.php');
-  }
-
-  // otherwise go ahead and update the database
-  $values = array();
-  $q_string = (isset($id)) ? "action=edit" : "action=add";
-  foreach ($fields as $index => $field)
-  {
-    $fieldname = $field['name'];
-    $type = get_form_var_type($field);
-
-    if ($fieldname == 'id')
-    {
-      // id: don't need to do anything except add the id to the query string;
-      // the field itself is auto-incremented
-      if (isset($id))
-      {
-        $q_string .= "&id=$id";
-      }
-      continue;
-    }
-
-    // first, get all the other form variables, except for password_hash which is
-    // a special case,and put them into an array, $values, which  we will use
-    // for entering into the database assuming we pass validation
-    if ($fieldname !== 'password_hash')
-    {
-      $values[$fieldname] = get_form_var(VAR_PREFIX. $fieldname, $type);
-      // Turn checkboxes into booleans
-      if (($fieldname !== 'level') &&
-          ($field['nature'] == 'integer') &&
-          isset($field['length']) &&
-          ($field['length'] <= 2))
-      {
-        $values[$fieldname] = (empty($values[$fieldname])) ? 0 : 1;
-      }
-      // Trim the field to remove accidental whitespace
-      $values[$fieldname] = trim($values[$fieldname]);
-      // Truncate the field to the maximum length as a precaution.
-      if (null !== ($maxlength = maxlength("users.$fieldname")))
-      {
-        $values[$fieldname] = utf8_substr($values[$fieldname], 0, $maxlength);
-      }
-    }
-
-    // we will also put the data into a query string which we will use for passing
-    // back to this page if we fail validation.   This will enable us to reload the
-    // form with the original data so that the user doesn't have to
-    // re-enter it.  (Instead of passing the data in a query string we
-    // could pass them as session variables, but at the moment MRBS does
-    // not rely on PHP sessions).
-    switch ($fieldname)
-    {
-      // some of the fields get special treatment
-      case 'name':
-        // name: convert it to lower case
-        $q_string .= "&$fieldname=" . $values[$fieldname];
-        $values[$fieldname] = utf8_strtolower($values[$fieldname]);
-        break;
-      case 'password_hash':
-        // password: if the password field is blank it means
-        // that the user doesn't want to change the password
-        // so don't do anything; otherwise calculate the hash.
-        // Note: we don't put the password in the query string
-        // for security reasons.
-        if ($password0 !== '')
-        {
-          $values[$fieldname] = password_hash($password0, PASSWORD_DEFAULT);
-        }
-        break;
-      case 'level':
-        // level:  set a safe default (lowest level of access)
-        // if there is no value set
-        $q_string .= "&$fieldname=" . $values[$fieldname];
-        if (!isset($values[$fieldname]))
-        {
-          $values[$fieldname] = 0;
-        }
-        // Check that we are not trying to upgrade our level.    This shouldn't be possible
-        // but someone might have spoofed the input in the edit form
-        if ($values[$fieldname] > $level)
-        {
-          location_header('edit_users.php');
-        }
-        break;
-      case 'timestamp':
-      case 'last_login':
-        // Don't update this field ourselves at all
-        unset($fields[$index]);
-        unset($values[$fieldname]);
-        break;
-      default:
-        $q_string .= "&$fieldname=" . $values[$fieldname];
-        break;
-    }
-  }
-
-  // Now do some form validation
-  $valid_data = true;
-  foreach ($values as $fieldname => $value)
-  {
-    switch ($fieldname)
-    {
-      case 'name':
-        // check that the name is not empty
-        if ($value === '')
-        {
-          $valid_data = false;
-          $q_string .= "&name_empty=1";
-        }
-
-        $sql_params = array();
-
-        // Check that the name is unique.
-        // If it's a new user, then to check to see if there are any rows with that name.
-        // If it's an update, then check to see if there are any rows with that name, except
-        // for that user.
-        $query = "SELECT id
-                    FROM " . _tbl('users') . "
-                   WHERE name=?";
-        $sql_params[] = $value;
-        if (isset($id))
-        {
-          $query .= " AND id != ?";
-          $sql_params[] = $id;
-        }
-        $query .= " LIMIT 1";  // we only want to know if there is at least one instance of the name
-        $result = db()->query($query, $sql_params);
-        if ($result->count() > 0)
-        {
-          $valid_data = false;
-          $q_string .= "&name_not_unique=1";
-          $q_string .= "&taken_name=$value";
-        }
-        break;
-      case 'password_hash':
-        // check that the two passwords match
-        if ($password0 != $password1)
-        {
-          $valid_data = false;
-          $q_string .= "&pwd_not_match=1";
-        }
-        // check that the password conforms to the password policy
-        // if it's a new user, or else if it's an existing user
-        // trying to change their password
-        if (!isset($id) || (isset($password0) && ($password0 !== '')))
-        {
-          if (!auth()->validatePassword($password0))
-          {
-            $valid_data = false;
-            $q_string .= "&pwd_invalid=1";
-          }
-        }
-        break;
-      case 'email':
-        // check that the email address is valid
-        if (isset($value) && ($value !== '') && !validate_email_list($value))
-        {
-          $valid_data = false;
-          $q_string .= "&invalid_email=1";
-        }
-        break;
-    }
-  }
-
-  // if validation failed, go back to this page with the query
-  // string, which by now has both the error codes and the original
-  // form values
-  if (!$valid_data)
-  {
-    location_header("edit_users.php?$q_string");
-  }
-
-
-  // If we got here, then we've passed validation and we need to
-  // enter the data into the database
-
-  $sql_params = array();
-  $sql_fields = array();
-
-  // For each db column get the value ready for the database
-  foreach ($fields as $field)
-  {
-    $fieldname = $field['name'];
-
-    // Stop ordinary users trying to change fields they are not allowed to
-    if (!$initial_user_creation &&
-        !is_user_admin() &&
-        in_array($fieldname, $auth['db']['protected_fields']))
-    {
-      continue;
-    }
-
-    // If the password field is blank then we are not changing it
-    if (($fieldname == 'password_hash') && (!isset($values[$fieldname])))
-    {
-      continue;
-    }
-
-    if ($fieldname != 'id')
-    {
-      // pre-process the field value for SQL
-      $value = $values[$fieldname];
-      switch ($field['nature'])
-      {
-        case 'integer':
-          if (!isset($value) || ($value === ''))
-          {
-            // Try and set it to NULL when we can because there will be cases when we
-            // want to distinguish between NULL and 0 - especially when the field
-            // is a genuine integer.
-            $value = ($field['is_nullable']) ? null : 0;
-          }
-          break;
-        default:
-          // No special handling
-          break;
-      }
-
-      /* If we got here, we have a valid, sql-ified value for this field,
-       * so save it for later */
-      $sql_fields[$fieldname] = $value;
-    }
-  } /* end for each column of user database */
-
-  /* Now generate the SQL operation based on the given array of fields */
-  if (isset($id))
-  {
-    /* if the id exists - then we are editing an existing user, rather than
-     * creating a new one */
-
-    $assign_array = array();
-    $operation = "UPDATE " . _tbl('users') . " SET ";
-
-    foreach ($sql_fields as $fieldname => $value)
-    {
-      array_push($assign_array, db()->quote($fieldname) . "=?");
-      $sql_params[] = $value;
-    }
-    $operation .= implode(",", $assign_array) . " WHERE id=?";
-    $sql_params[] = $id;
-  }
-  else
-  {
-    /* The id field doesn't exist, so we're adding a new user */
-
-    $fields_list = array();
-    $values_list = array();
-
-    foreach ($sql_fields as $fieldname => $value)
-    {
-      array_push($fields_list,$fieldname);
-      array_push($values_list,'?');
-      $sql_params[] = $value;
-    }
-
-    foreach ($fields_list as &$field)
-    {
-      $field = db()->quote($field);
-    }
-    $operation = "INSERT INTO " . _tbl('users') . " " .
-      "(". implode(",", $fields_list) . ")" .
-      " VALUES " . "(" . implode(",", $values_list) . ")";
-  }
-
-  /* DEBUG lines - check the actual sql statement going into the db */
-  //echo "Final SQL string: <code>" . htmlspecialchars($operation) . "</code>";
-  //exit;
-  db()->command($operation, $sql_params);
-
-  /* Success. Redirect to the user list, to remove the form args */
-  location_header('edit_users.php');
-}
 
 /*---------------------------------------------------------------------------*\
-|                                Delete a user                                |
+|             Sync users                                                      |
 \*---------------------------------------------------------------------------*/
 
-if (isset($action) && ($action == "delete"))
+if (isset($action) && ($action == "sync"))
 {
-  $sql = "SELECT level
-            FROM " . _tbl('users') . "
-           WHERE id=?
-           LIMIT 1";
-
-  $target_level = db()->query1($sql, array($id));
-  if ($target_level < 0)
-  {
-    fatal_error("Fatal error while deleting a user");
-  }
-  // you can't delete a user if you're not some kind of admin, and then you can't
-  // delete someone higher than you
-  if (!is_user_admin() || ($level < $target_level))
-  {
-    showAccessDenied();
-    exit();
-  }
-
-  $sql = "DELETE FROM " . _tbl('users') . "
-           WHERE id=?";
-  db()->command($sql, array($id));
-
-  /* Success. Do not display a message. Simply fall through into the list display. */
+  $users->sync();
 }
+
 
 /*---------------------------------------------------------------------------*\
 |                          Display the list of users                          |
@@ -1187,32 +910,54 @@ if (!$is_ajax)
 
   if (is_user_admin()) /* Administrators get the right to add new users */
   {
-    $form = new Form();
+    // Add button for the 'db' auth type or where we can't get all the users
+    if (($auth['type'] == 'db') || !method_exists(auth(), 'getUsers'))
+    {
+      $form = new Form();
 
-    $form->setAttributes(array('id'     => 'add_new_user',
-                               'method' => 'post',
-                               'action' => multisite(this_page())));
+      $form->setAttributes(array('id' => 'add_new_user',
+        'method' => 'post',
+        'action' => multisite(this_page())));
 
-    $form->addHiddenInput('action', 'add');
+      $form->addHiddenInput('action', 'add');
 
-    $submit = new ElementInputSubmit();
-    $submit->setAttribute('value', get_vocab('add_new_user'));
-    $form->addElement($submit);
+      $submit = new ElementInputSubmit();
+      $submit->setAttribute('value', get_vocab('add_new_user'));
+      $form->addElement($submit);
+      $form->render();
+    }
+    // Sync button otherwise
+    else
+    {
+      $form = new Form();
+      $form->setAttributes(array('id' => 'sync',
+                                 'method' => 'post',
+                                 'action' => multisite(this_page())));
 
-    $form->render();
+      $form->addHiddenInput('action', 'sync');
+
+      $submit = new ElementInputSubmit();
+      $submit->setAttribute('value', get_vocab('sync'));
+      $form->addElement($submit);
+      $form->render();
+    }
+
   }
 }
 
-if ($initial_user_creation != 1)   // don't print the user table if there are no users
+if (!$initial_user_creation)   // don't print the user table if there are no users
 {
   // Display the user data in a table
 
   // We don't display these columns or they get special treatment
   $ignore_columns = array(
       'id',
+      'auth_type',
       'password_hash',
       'name',
       'display_name',
+      'email',
+      'level',
       'reset_key_hash',
       'reset_key_expiry'
     );
@@ -1226,30 +971,36 @@ if ($initial_user_creation != 1)   // don't print the user table if there are no
     echo "<thead>\n";
     echo "<tr>";
 
-    // First two columns which are the name and display name
-    echo '<th><span class="normal" data-type="title-string">' . get_vocab("users.display_name") . "</span></th>\n";
-    echo '<th><span class="normal" data-type="title-string">' . get_vocab("users.name") . "</span></th>\n";
+    // First three columns which are the name, display name, email address and roles
+    echo '<th><span class="normal" data-type="title-string">' . get_vocab("user.display_name") . "</span></th>\n";
+    echo '<th><span class="normal" data-type="title-string">' . get_vocab("user.name") . "</span></th>\n";
+    echo '<th id="col_email">' . get_vocab("user.email") . "</th>\n";
+    echo '<th><span class="normal" data-type="title-numeric">' . get_vocab("user.level") . "</span></th>\n";
+    echo '<th><span class="normal" data-type="title-string">' . get_vocab("groups") . "</span></th>\n";
+    echo '<th><span class="normal" data-type="title-string">' . get_vocab("roles") . "</span></th>\n";
 
     // Other column headers
-    foreach ($fields as $field)
+    if ($auth['type'] == 'db')
     {
-      $fieldname = $field['name'];
-
-      if (!in_array($fieldname, $ignore_columns))
+      foreach ($fields as $field)
       {
-        $heading = get_loc_field_name(_tbl('users'), $fieldname);
-        // We give some columns a type data value so that the JavaScript knows how to sort them
-        switch ($fieldname)
+        $fieldname = $field['name'];
+
+        if (!in_array($fieldname, $ignore_columns))
         {
-          case 'level':
-          case 'timestamp':
-          case 'last_login':
-            $heading = '<span class="normal" data-type="title-numeric">' . $heading . '</span>';
-            break;
-          default:
-            break;
+          $heading = get_loc_field_name(_tbl(User::TABLE_NAME), $fieldname);
+          // We give some columns a type data value so that the JavaScript knows how to sort them
+          switch ($fieldname)
+          {
+            case 'timestamp':
+            case 'last_login':
+              $heading = '<span class="normal" data-type="title-numeric">' . $heading . '</span>';
+              break;
+            default:
+              break;
+          }
+          echo '<th id="col_' . htmlspecialchars($fieldname) . "\">$heading</th>";
         }
-        echo '<th id="col_' . htmlspecialchars($fieldname) . "\">$heading</th>";
       }
     }
 
@@ -1267,7 +1018,7 @@ if ($initial_user_creation != 1)   // don't print the user table if there are no
   {
     foreach ($users as $user)
     {
-      if (can_view_user($user['name']))
+      if (can_view_user($user->name))
       {
         output_row($user);
       }
@@ -1282,7 +1033,7 @@ if ($initial_user_creation != 1)   // don't print the user table if there are no
     echo "</div>\n";
   }
 
-}   // ($initial_user_creation != 1)
+}   // (!$initial_user_creation)
 
 if ($is_ajax)
 {
