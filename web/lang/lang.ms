@@ -226,11 +226,11 @@ $vocab["none_outstanding"]   = "Anda tiada tempahan menunggu untuk kelulusan.";
 $vocab["accessdenied"]       = "Dinafikan Akses";
 $vocab["norights"]           = "Anda tidak mempunyai hak yang diperlukan untuk melihat halaman ini.";
 $vocab["please_login"]       = "Sila log masuk";
-$vocab["users.name"]         = "Nama";
-$vocab["users.password"]     = "Kata Laluan";
-$vocab["users.level"]        = "Rights";
-$vocab["users.timestamp"]    = "Kemaskini terakhir";
-$vocab["users.last_login"]   = "Log masuk terakhir";
+$vocab["user.name"]         = "Nama";
+$vocab["user.password"]     = "Kata Laluan";
+$vocab["user.level"]        = "Rights";
+$vocab["user.timestamp"]    = "Kemaskini terakhir";
+$vocab["user.last_login"]   = "Log masuk terakhir";
 $vocab["unknown_user"]       = "";
 $vocab["login"]              = "Log Masuk";
 $vocab["logoff"]             = "Log Keluar";
@@ -255,9 +255,9 @@ $vocab["level_3"]            = "user admin";
 $vocab["user_list"]          = "Senarai Pengguna";
 $vocab["edit_user"]          = "Edit Pengguna";
 $vocab["delete_user"]        = "Padam Pengguna ini";
-//$vocab["users.name"]         = Use the same as above, for consistency.
-//$vocab["users.password"]     = Use the same as above, for consistency.
-$vocab["users.email"]        = "Alamat emel";
+//$vocab["user.name"]         = Use the same as above, for consistency.
+//$vocab["user.password"]     = Use the same as above, for consistency.
+$vocab["user.email"]        = "Alamat emel";
 $vocab["password_twice"]     = "Jika anda ingin menukar kata laluan, sila masukkan kata laluan baru sebanyak 2 kali";
 $vocab["passwords_not_eq"]   = "kata laluan tidak sama!";
 $vocab["password_invalid"]   = "kata laluan tidak menepati polisi.  ia mesti mengandungi sekurang-kurangnya:";
@@ -436,7 +436,7 @@ $vocab["disabled_room_note"]      = "If this room is disabled, it will not appea
                                     "will be preserved and will be visible in Search and Report results.";
 $vocab["book_ahead_note_periods"] = "When using periods, book ahead times are rounded down to the nearest whole day.";
 
-// Used in edit_users.php
+// Used in edit_user.php
 $vocab["name_empty"]         = "Anda mesti masukkan nama.";
 $vocab["name_not_unique"]    = "telah wujud.   SIla pilih nama lain.";
 
