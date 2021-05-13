@@ -83,6 +83,13 @@ if ($type == "room")
   if (!empty($confirm))
   {
     // They have confirmed it already, so go blast!
+
+    // Acquire mutex.
+    if (!db()->mutex_lock(_tbl(Room::TABLE_NAME)))
+    {
+      fatal_error(get_vocab("failed_to_acquire"));
+    }
+
     db()->begin();
     try
     {
@@ -94,16 +101,19 @@ if ($type == "room")
       db()->command($sql, array($room));
 
       // Now take out the room itself
-      $sql = "DELETE FROM " . _tbl('room') . " WHERE id=?";
-      db()->command($sql, array($room));
+      Room::deleteById($room);
     }
     catch (DBException $e)
     {
       db()->rollback();
+      db()->mutex_unlock(_tbl(Room::TABLE_NAME));
       throw $e;
     }
 
     db()->commit();
+
+    // Unlock the table
+    db()->mutex_unlock(_tbl(Room::TABLE_NAME));
 
     // Go back to the admin page
     location_header("admin.php?area=$area");
@@ -178,20 +188,22 @@ if ($type == "room")
 if ($type == "area")
 {
   // We are only going to let them delete an area if there are
-  // no rooms. its easier
-  $sql = "SELECT COUNT(*)
-            FROM " . _tbl('room') . "
-           WHERE area_id=?";
+  // no rooms, as it's easier.
+  $rooms = new Rooms($area);
 
-  $n = db()->query1($sql, array($area));
-  if ($n == 0)
+  if ($rooms->count() == 0)
   {
     // OK, nothing there, let's blast it away
-    $sql = "DELETE FROM " . _tbl('area') . "
-             WHERE id=?";
+    // Acquire mutex.
+    if (!db()->mutex_lock(_tbl(Area::TABLE_NAME)))
+    {
+      fatal_error(get_vocab("failed_to_acquire"));
+    }
 
-    db()->command($sql, array($area));
+    Area::deleteById($area);
 
+    // Release the mutex
+    db()->mutex_unlock(_tbl(Area::TABLE_NAME));
     // Redirect back to the admin page
     location_header('admin.php');
   }

@@ -276,12 +276,12 @@ $vocab["none_outstanding"]   = "You have no bookings awaiting approval.";
 $vocab["accessdenied"]              = "Access Denied";
 $vocab["norights"]                  = "You do not have the necessary rights to view this page.";
 $vocab["please_login"]              = "Please log in";
-$vocab["users.name"]                = "Username";
-$vocab["users.display_name"]        = "Name";
-$vocab["users.password"]            = "Password";
-$vocab["users.level"]               = "Rights";
-$vocab["users.timestamp"]           = "Last updated";
-$vocab["users.last_login"]          = "Last login";
+$vocab["user.name"]                = "Username";
+$vocab["user.display_name"]        = "Name";
+$vocab["user.password"]            = "Password";
+$vocab["user.level"]               = "Rights";
+$vocab["user.timestamp"]           = "Last updated";
+$vocab["user.last_login"]          = "Last login";
 $vocab["unknown_user"]              = "Unknown user";
 $vocab["login"]                     = "Log in";
 $vocab["logoff"]                    = "Log off";
@@ -329,9 +329,9 @@ $vocab["level_3"]            = "user admin";
 $vocab["user_list"]             = "Users";
 $vocab["edit_user"]             = "Edit user";
 $vocab["delete_user"]           = "Delete this user";
-//$vocab["users.name"]          = Use the same as above, for consistency.
-//$vocab["users.password"]      = Use the same as above, for consistency.
-$vocab["users.email"]           = "Email address";
+//$vocab["user.name"]           = Use the same as above, for consistency.
+//$vocab["user.password"]       = Use the same as above, for consistency.
+$vocab["user.email"]            = "Email address";
 $vocab["password_twice"]        = "If you wish to change the password, please type the new password twice";
 $vocab["passwords_not_eq"]      = "The passwords did not match!";
 $vocab["password_invalid"]      = "The password does not conform to the policy.  It must contain at least:";
@@ -342,6 +342,13 @@ $vocab["policy_upper"]          = "%d upper-case letter(s)";
 $vocab["policy_numeric"]        = "%d numeric character(s)";
 $vocab["policy_special"]        = "%d special character(s)";
 $vocab["add_new_user"]          = "Add a new user";
+$vocab["sync"]                  = "Sync";
+$vocab["sync_delete_no_users"]  = "Sync: there are no users to delete.";
+$vocab["sync_deleting_n_users"] = "Sync: deleting %d users:";
+$vocab["sync_add_no_users"]     = "Sync: there are no users to add.";
+$vocab["sync_adding_n_users"]   = "Sync: adding %d users:";
+$vocab["sync_update_no_users"]  = "Sync: there are no users to update.";
+$vocab["sync_updating_n_users"] = "Sync: updating %d users:";
 $vocab["action"]                = "Action";
 $vocab["user"]                  = "User";
 $vocab["administrator"]         = "Administrator";
@@ -354,6 +361,35 @@ $vocab["no_users_create_first_admin"] = "Before you can do anything else you nee
                                         "areas and rooms.";
 $vocab["warning_last_admin"]    = "Warning!  This is the last admin and so you cannot delete this user or remove admin rights, otherwise you will be locked out of the system.";
 $vocab["copy_email_addresses"]  = "Copy email addresses";
+
+// Groups
+$vocab['group']              = "Group";
+$vocab['groups']             = "Groups";
+$vocab['add_group']          = "Add group";
+$vocab['group_heading']      = "Group: %s";
+$vocab['group_exists']       = "The group '%s' already exists.";
+
+// Roles
+$vocab['role']               = "Role";
+$vocab['roles']              = "Roles";
+$vocab['add_role']           = "Add role";
+$vocab['role_name']          = "Name";
+$vocab['role_exists']        = "The role '%s' already exists.";
+$vocab['area_rule_exists']   = 'A rule already exists for area \'%s\'.'; // area_name
+$vocab['room_rule_exists']   = 'A rule already exists for room \'%s\'.'; // room_name
+$vocab["confirm_del_role"]   = "Are you sure you want to delete the role '%s'?";
+$vocab["confirm_del_area_rule"] = "Are you sure you want to delete the rule for the area '%s'?";
+$vocab["confirm_del_room_rule"] = "Are you sure you want to delete the rule for the room '%s'?";
+$vocab["role_heading"]       = "Role: %s";
+$vocab["add_area_rule"]      = "Add area rule";
+$vocab["add_room_rule"]      = "Add room rule";
+$vocab["permission"]         = "Permission";
+$vocab["permission_read"]    = "Read";
+$vocab["permission_write"]   = "Write";
+$vocab["permission_all"]     = "All";
+$vocab["state"]              = "State";
+$vocab["state_granted"]      = "Granted";
+$vocab["state_denied"]       = "Denied";
 
 // Used in search.php
 $vocab["invalid_search"]     = "Empty or invalid search string.";
@@ -447,6 +483,7 @@ $vocab["area_first_slot_start"]   = "Start of first slot";
 $vocab["area_last_slot_start"]    = "Start of last slot";
 $vocab["area_res_mins"]           = "Resolution (minutes)";
 $vocab["area_def_duration_mins"]  = "Default duration (minutes)";
+$vocab["booking_opens"]           = "Booking opens";
 $vocab["times_along_top"]         = "Times along the top";
 $vocab["invalid_area"]            = "Invalid area!";
 $vocab["invalid_room"]            = "Invalid room!";
@@ -517,15 +554,18 @@ $vocab["disabled_area_note"]      = "If this area is disabled, it will not appea
 $vocab["disabled_room_note"]      = "If this room is disabled, it will not appear in the calendar views " .
                                     "and it will not be possible to book it.   However existing bookings " .
                                     "will be preserved and will be visible in Search and Report results.";
-$vocab["book_ahead_note_periods"] = "When using periods, book ahead times are rounded down to the nearest whole day.";
+$vocab["book_ahead_note_periods"] = "When using periods, book ahead times are rounded down to the nearest whole day " .
+                                    " and, for the purposes of the booking policies below, the day is considered to " .
+                                    " start at the time shown below.";
 $vocab["invalid_types"]           = "Invalid types";
 $vocab["invalid_types_note"]      = "These are types that are not allowed to be used in this room.";
 
 
-// Used in edit_users.php
-$vocab["name_empty"]          = "You must enter a name.";
-$vocab["name_not_unique"]     = "already exists.   Please choose another name.";
-$vocab["confirm_delete_user"] = "Are you sure you want to delete this user?";
+// Used in edit_user.php
+$vocab["name_empty"]              = "You must enter a name.";
+$vocab["name_not_unique"]         = "already exists.   Please choose another name.";
+$vocab["confirm_delete_user"]     = "Are you sure you want to delete this user?";
+$vocab["effective_permissions"]   = "Effective permissions";
 
 // Used in del.php
 $vocab["deletefollowing"]    = "This will delete the following bookings";
