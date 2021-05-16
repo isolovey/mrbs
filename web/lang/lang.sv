@@ -216,9 +216,9 @@ $vocab["none_outstanding"]   = "Du har inga preliminära bokningar som väntar p
 $vocab["accessdenied"]       = "Åtkomst nekad";
 $vocab["norights"]           = "Du har inte rättighet att ändra bokningen.";
 $vocab["please_login"]       = "Vänligen logga in";
-$vocab["users.name"]          = "Användarnamn";
-$vocab["users.password"]      = "Lösenord";
-$vocab["users.level"]         = "Rättigheter";
+$vocab["user.name"]          = "Användarnamn";
+$vocab["user.password"]      = "Lösenord";
+$vocab["user.level"]         = "Rättigheter";
 $vocab["unknown_user"]       = "Okänd användare";
 $vocab["login"]              = "Logga in";
 $vocab["logoff"]             = "Logga ut";
@@ -243,9 +243,9 @@ $vocab["level_3"]            = "Superadministratör";
 $vocab["user_list"]          = "Användarlista";
 $vocab["edit_user"]          = "Ändra användare";
 $vocab["delete_user"]        = "Radera denna användare";
-//$vocab["users.name"]         = Use the same as above, for consistency.
-//$vocab["users.password"]     = Use the same as above, for consistency.
-$vocab["users.email"]         = "E-postadress";
+//$vocab["user.name"]         = Use the same as above, for consistency.
+//$vocab["user.password"]     = Use the same as above, for consistency.
+$vocab["user.email"]         = "E-postadress";
 $vocab["password_twice"]     = "Om du vill ändra ditt lösenord, vänligen skriv in det två gånger";
 $vocab["passwords_not_eq"]   = "Fel: Lösenorden stämmer inte överens.";
 $vocab["password_invalid"]   = "Lösenordet är inte giltigt. Det måste innehålla följande:";
@@ -419,7 +419,7 @@ $vocab["disabled_room_note"]      = "Om detta rum är inaktiverat, kommer det in
                                       "kommer att visas i sök och rapportresultaten. ";
 $vocab["book_ahead_note_periods"] = "När man använder perioder är förbokningstiderna avrundade nedåt till närmaste hel dag.";
 
-// Used in edit_users.php
+// Used in edit_user.php
 $vocab["name_empty"]         = "Du måste ange ett namn.";
 $vocab["name_not_unique"]    = "finns redan.   Ange ett annat namn.";
 

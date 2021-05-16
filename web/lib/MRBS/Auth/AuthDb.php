@@ -3,7 +3,7 @@ namespace MRBS\Auth;
 
 use MRBS\MailQueue;
 use MRBS\User;
-use PHPMailer\PHPMailer\PHPMailer;
+
 
 class AuthDb extends Auth
 {
@@ -35,22 +35,7 @@ class AuthDb extends Auth
     $valid_usernames = array_merge($valid_usernames, $this->validateEmail($user, $pass));
     $valid_usernames = array_unique($valid_usernames);
 
-    if (count($valid_usernames) == 1)
-    {
-      $result = $valid_usernames[0];
-      // Update the database with this login, but don't change the timestamp
-      $now = time();
-      $sql = "UPDATE " . \MRBS\_tbl('users') . "
-                 SET last_login=?, timestamp=timestamp
-               WHERE name=?";
-      $sql_params = array($now, $result);
-      \MRBS\db()->command($sql, $sql_params);
-      return $result;
-    }
-    else
-    {
-      return false;
-    }
+    return (count($valid_usernames) == 1) ? $valid_usernames[0] : false;
   }
 
 
@@ -74,10 +59,11 @@ class AuthDb extends Auth
     // permits wildcards, so we could use a combination of LIKE and '=' but that's a bit
     // messy.  WE could use STRCMP, but that's MySQL only.
 
-    // Usernames are unique in the users table, so we only look for one.
+    // Usernames are unique in the user table, so we only look for one.
     $sql = "SELECT password_hash, name
-            FROM " . \MRBS\_tbl('users') . "
+            FROM " . \MRBS\_tbl(User::TABLE_NAME) . "
            WHERE " . \MRBS\db()->syntax_casesensitive_equals('name', \MRBS\utf8_strtolower($user), $sql_params) . "
+             AND auth_type='db'
            LIMIT 1";
 
     $res = \MRBS\db()->query($sql, $sql_params);
@@ -108,15 +94,15 @@ class AuthDb extends Auth
   {
     $valid_usernames = array();
 
-    // Email addresses are not unique in the users table, so we need to find all of them.
+    // Email addresses are not unique in the user table, so we need to find all of them.
     $users = self::getUsersByEmail($email);
 
     // Check all the users that have this email address and password hash.
     foreach($users as $user)
     {
-      if ($this->checkPassword($pass, $user['password_hash'], 'email', $email))
+      if ($this->checkPassword($pass, $user->password_hash, 'email', $email))
       {
-        $valid_usernames[] = $user['name'];
+        $valid_usernames[] = $user->name;
       }
     }
 
@@ -126,29 +112,7 @@ class AuthDb extends Auth
 
   public function getUser($username)
   {
-    $row = $this->getUserByUsername($username);
-
-    // The username doesn't exist - return NULL
-    if (!isset($row))
-    {
-      return null;
-    }
-
-    // The username does exist - return a User object
-    $user = new User($username);
-
-    // $user->level and $user->display_name will be set as part of this
-    foreach ($row as $key => $value)
-    {
-      if ($key == 'name')
-      {
-        // This has already been set as the 'username' property;
-        continue;
-      }
-      $user->$key = $value;
-    }
-
-    return $user;
+    return User::getByName($username, 'db');
   }
 
 
@@ -156,21 +120,9 @@ class AuthDb extends Auth
   public function getUsernames()
   {
     $sql = "SELECT name AS username, display_name AS display_name
-              FROM " . \MRBS\_tbl('users') . "
+              FROM " . \MRBS\_tbl(User::TABLE_NAME) . "
+             WHERE auth_type='db';
           ORDER BY display_name";
-
-    $res = \MRBS\db()->query($sql);
-
-    return $res->all_rows_keyed();
-  }
-
-
-  // Return an array of all users
-  public function getUsers()
-  {
-    $sql = "SELECT *
-              FROM " . \MRBS\_tbl('users') . "
-             ORDER BY name";
 
     $res = \MRBS\db()->query($sql);
 
@@ -203,6 +155,8 @@ class AuthDb extends Auth
 
   public function requestPassword($login)
   {
+    global $auth;
+
     if (!isset($login) || ($login === ''))
     {
       return false;
@@ -213,10 +167,10 @@ class AuthDb extends Auth
     // addresses at the same time.
     $possible_users = array();
 
-    $user = $this->getUserByUsername($login);
+    $user = User::getByName($login, $auth['type']);
 
     // Users must have an email address otherwise we won't be able to mail a reset link
-    if (isset($user) && isset($user['email']) && ($user['email'] !== ''))
+    if (isset($user) && isset($user->email) && ($user->email !== ''))
     {
       $possible_users[] = $user;
     }
@@ -228,7 +182,7 @@ class AuthDb extends Auth
       {
         // Check that the email addresses are the same
         if (!empty($possible_users) &&
-            (\MRBS\utf8_strtolower($possible_users[0]['email']) !== \MRBS\utf8_strtolower($login)))
+            (\MRBS\utf8_strtolower($possible_users[0]->email) !== \MRBS\utf8_strtolower($login)))
         {
           return false;
         }
@@ -265,11 +219,12 @@ class AuthDb extends Auth
     }
 
     // Set the new password and clear the reset key
-    $sql = "UPDATE " . \MRBS\_tbl('users') . "
+    $sql = "UPDATE " . \MRBS\_tbl(User::TABLE_NAME) . "
                SET password_hash=:password_hash,
                    reset_key_hash=NULL,
                    reset_key_expiry=0
-             WHERE name=:name";  // PostgreSQL does not support LIMIT with UPDATE
+             WHERE name=:name
+               AND auth_type='db'";  // PostgreSQL does not support LIMIT with UPDATE
 
     $sql_params = array(
         ':password_hash' => password_hash($password, PASSWORD_DEFAULT),
@@ -290,8 +245,9 @@ class AuthDb extends Auth
     }
 
     $sql = "SELECT reset_key_hash, reset_key_expiry
-              FROM " . \MRBS\_tbl('users') . "
+              FROM " . \MRBS\_tbl(User::TABLE_NAME) . "
              WHERE name=:name
+               AND auth_type='db'
              LIMIT 1";
 
     $sql_params = array(':name' => $user);
@@ -320,46 +276,47 @@ class AuthDb extends Auth
   {
     global $auth, $mail_settings;
 
-    if (empty($users) || !isset($users[0]['email']) || ($users[0]['email'] === ''))
+    if (empty($users) || !isset($users[0]->email) || ($users[0]->email === ''))
     {
       return false;
     }
 
-    $expiry_time = $auth['db']['reset_key_expiry'];
-    \MRBS\toTimeString($expiry_time, $expiry_units, true, 'hours');
+    $expiry = \MRBS\to_time_string($auth['db']['reset_key_expiry'], true, 'hours');
     $addresses = array(
-        'from'  => $mail_settings['from']
+        'from'  => $mail_settings['from'],
+        'to'    => $users[0]->email
       );
-    // Add the To address, using the display name if possible (ie if it exists and there's
-    // only one user).
-    // Also get a name to use in the message body
-    if ((count($users) == 1) &&
-        isset($users[0]['display_name']) &&
-        ($users[0]['display_name'] !== ''))
+    // Add the To address.  Also get a name to use in the message body.
+    // If there's only one user we can use the username and display name, otherwise
+    // we have to use the email address which is the same for all users.
+    if ((count($users) == 1))
     {
-      $mailer = new PHPMailer();
-      $mailer->CharSet = \MRBS\get_mail_charset();
-      // Note that addrFormat() returns a MIME-encoded address
-      $addresses['to'] = $mailer->addrFormat(array($users[0]['email'], $users[0]['display_name']));
-      $name = $users[0]['display_name'];
+      $addresses['to'] = $users[0]->mailbox();
+      if (isset($users[0]->display_name) && ($users[0]->display_name !== ''))
+      {
+        $name = $users[0]->display_name;
+      }
+      else
+      {
+        $name = $users[0]->username;
+      }
     }
     else
     {
-      $addresses['to'] = $users[0]['email'];
-      // If there's only one user we can use the username, otherwise we have to use the
-      // email address which is the same for all users.
-      $name = (count($users) == 1) ? $users[0]['name'] : $users[0]['email'];
+      $addresses['to'] = $users[0]->email;
+      $name = $users[0]->email;
     }
+
     $subject = \MRBS\get_vocab('password_reset_subject');
     $body = '<p>';
-    $body .= \MRBS\get_vocab('password_reset_body', intval($expiry_time), $expiry_units, $name);
+    $body .= \MRBS\get_vocab('password_reset_body', intval($expiry['value']), $expiry['units'], $name);
     $body .= "</p>\n";
 
     // Construct and add in the link
     $usernames = array();
     foreach ($users as $user)
     {
-      $usernames[] = $user['name'];
+      $usernames[] = $user->username;
     }
     $usernames = array_unique($usernames);
 
@@ -399,10 +356,10 @@ class AuthDb extends Auth
     foreach($users as $user)
     {
       // Use intval to make sure the string is safe for the SQL query
-      $ids[] = intval($user['id']);
+      $ids[] = intval($user->id);
     }
 
-    $sql = "UPDATE " . \MRBS\_tbl('users') . "
+    $sql = "UPDATE " . \MRBS\_tbl(User::TABLE_NAME) . "
                SET reset_key_hash=:reset_key_hash,
                    reset_key_expiry=:reset_key_expiry
              WHERE id IN (" . implode(',', $ids) . ")";
@@ -418,29 +375,10 @@ class AuthDb extends Auth
   }
 
 
-  private function getUserByUsername($username)
-  {
-    $sql = "SELECT *
-              FROM " . \MRBS\_tbl('users') . "
-             WHERE name=:name
-             LIMIT 1";
-
-    $result = \MRBS\db()->query($sql, array(':name' => $username));
-
-    // The username doesn't exist - return NULL
-    if ($result->count() === 0)
-    {
-      return null;
-    }
-
-    return $result->next_row_keyed();
-  }
-
-
   private function getUserByUserId($id)
   {
     $sql = "SELECT *
-              FROM " . \MRBS\_tbl('users') . "
+              FROM " . \MRBS\_tbl(User::TABLE_NAME) . "
              WHERE id=:id
              LIMIT 1";
 
@@ -456,7 +394,7 @@ class AuthDb extends Auth
   }
 
 
-  // Returns an array of rows for all users with the email address $email.
+  // Returns an array of User objects for users with the email address $email.
   // Assumes that email addresses are case insensitive.
   // Allows equivalent Gmail addresses, ie ignores dots in the local part and
   // treats gmail.com and googlemail.com as equivalent domains.
@@ -510,14 +448,18 @@ class AuthDb extends Auth
     }
 
     $sql = "SELECT *
-              FROM " . \MRBS\_tbl('users') . "
-             WHERE $condition";
+              FROM " . \MRBS\_tbl(User::TABLE_NAME) . "
+             WHERE ($condition)
+               AND auth_type='db'";
 
     $res = \MRBS\db()->query($sql, $sql_params);
 
     while (false !== ($row = $res->next_row_keyed()))
     {
-      $result[] = $row;
+      $user = new User();
+      $user->load($row);
+      $user->username = $user->name;
+      $result[] = $user;
     }
 
     return $result;
@@ -548,9 +490,10 @@ class AuthDb extends Auth
         break;
     }
 
-    $sql = "UPDATE " . \MRBS\_tbl('users') . "
+    $sql = "UPDATE " . \MRBS\_tbl(User::TABLE_NAME) . "
                SET password_hash=?
-             WHERE $condition";
+             WHERE $condition
+               AND auth_type='db'";
 
     \MRBS\db()->command($sql, $sql_params);
   }
