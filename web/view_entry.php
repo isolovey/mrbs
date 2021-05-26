@@ -114,7 +114,7 @@ function generate_cancel_registration_button(array $row, array $registrant, $lab
 
   $form = new Form();
   $form->setAttributes(array('action' => multisite('registration_handler.php'),
-    'method' => 'post'));
+                             'method' => 'post'));
 
   if ($as_field)
   {
@@ -189,7 +189,7 @@ function generate_register_button($row, $previous_page=null)
         'value'     => $mrbs_user->username,
         'disabled'  => false,
         'required'  => true,
-        'field'     => 'participants.username',
+        'field'     => 'participant.username',
         'label'     => get_vocab('name'),
         'name'      => 'username',
       );

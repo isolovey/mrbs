@@ -172,9 +172,9 @@ $vocab["none_outstanding"]   = "Er zijn geen openstaande boekingen die wachten o
 $vocab["accessdenied"]       = "Geen Toegang";
 $vocab["norights"]           = "U heeft geen rechten om deze boeking aan te passen.";
 $vocab["please_login"]       = "Inloggen A.U.B";
-$vocab["users.name"]          = "Naam";
-$vocab["users.password"]      = "Wachtwoord";
-$vocab["users.level"]         = "Rechten";
+$vocab["user.name"]          = "Naam";
+$vocab["user.password"]      = "Wachtwoord";
+$vocab["user.level"]         = "Rechten";
 $vocab["unknown_user"]       = "Onbekende gebruiker";
 $vocab["login"]              = "Inloggen";
 $vocab["logoff"]             = "Uitloggen";
@@ -199,9 +199,9 @@ $vocab["level_3"]            = "gebruiker admin";
 $vocab["user_list"]          = "Gebruikerslijst";
 $vocab["edit_user"]          = "Gebruiker aanpassen";
 $vocab["delete_user"]        = "Deze gebruiker verwijderen";
-//$vocab["users.name"]         = Use the same as above, for consistency.
-//$vocab["users.password"]     = Use the same as above, for consistency.
-$vocab["users.email"]         = "Email adres";
+//$vocab["user.name"]         = Use the same as above, for consistency.
+//$vocab["user.password"]     = Use the same as above, for consistency.
+$vocab["user.email"]         = "Email adres";
 $vocab["password_twice"]     = "Als u het wachtwoord wilt wijzigen dient u het nieuwe wachtwoord tweemaal in te voeren.";
 $vocab["passwords_not_eq"]   = "Fout: De wachtwoorden komen niet overeen.";
 $vocab["password_invalid"]   = "Het wachtwoord voldoet niet aan de eisen. Het moet tenminste bevatten:";
@@ -333,7 +333,7 @@ $vocab["mode_periods"]            = "Periode";
 $vocab["mode_times"]              = "Tijden";
 $vocab["times_only"]              = "Alleen gebruik van Tijden";
 
-// Used in edit_users.php
+// Used in edit_user.php
 $vocab["name_empty"]         = "U moet een naam invoeren.";
 $vocab["name_not_unique"]    = "betaat al. Kies aub een andere naam.";
 
